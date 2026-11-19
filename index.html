@@ -1,0 +1,1050 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Editor de Fotos Excursión</title>
+<meta name="description" content="Edita por lote tus fotos de excursiones (buggy, cenotes, cuevas, selva) desde el navegador. Tus fotos no se suben a ningún servidor.">
+<meta name="theme-color" content="#0e1a1f">
+<!-- JSZip para descargar todo en un .zip (solo se usa al descargar) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
+<style>
+  /* ===== Colores (modo claro y oscuro) ===== */
+  :root {
+    --fondo: #f3f6f5;
+    --panel: #ffffff;
+    --borde: #d9e2e0;
+    --texto: #142024;
+    --suave: #5b6b70;
+    --acento: #0a9e8f;      /* turquesa */
+    --acento-2: #2f8f3a;    /* verde selva */
+    --acento-texto: #ffffff;
+    --chip: #e8efed;
+    --sombra: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.05);
+    --peligro: #c0392b;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --fondo: #0b1418; --panel: #142227; --borde: #24363c;
+      --texto: #e6efee; --suave: #93a7ab; --acento: #19c2b0; --acento-2: #5cc06a;
+      --acento-texto: #04201d; --chip: #1c2e34; --sombra: none; --peligro: #ff6b5b;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --fondo: #0b1418; --panel: #142227; --borde: #24363c;
+    --texto: #e6efee; --suave: #93a7ab; --acento: #19c2b0; --acento-2: #5cc06a;
+    --acento-texto: #04201d; --chip: #1c2e34; --sombra: none; --peligro: #ff6b5b;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--fondo); color: var(--texto);
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+  button, input, select { font: inherit; color: inherit; }
+  .contenedor { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
+
+  header { padding: 18px 0 8px; }
+  header h1 { font-size: 1.35rem; margin: 0; letter-spacing: -.01em; }
+  header p { margin: 4px 0 0; color: var(--suave); font-size: .9rem; }
+  .candado { color: var(--acento); font-weight: 600; }
+
+  /* Distribución: una columna en móvil, dos en PC */
+  .rejilla { display: grid; gap: 16px; margin-top: 12px; }
+  @media (min-width: 900px) {
+    .rejilla { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); align-items: start; }
+    .col-vista { position: sticky; top: 12px; }
+  }
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--borde); border-radius: 14px;
+    box-shadow: var(--sombra); padding: 14px;
+  }
+  .panel + .panel { margin-top: 16px; }
+  .panel h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--suave); margin: 0 0 10px; }
+
+  /* Zona de subida */
+  .zona {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    border: 2px dashed var(--borde); border-radius: 12px; padding: 18px 12px; text-align: center;
+    cursor: pointer; transition: border-color .15s, background .15s;
+  }
+  .zona strong { font-size: 1rem; }
+  .zona span { color: var(--suave); font-size: .85rem; }
+  .zona.encima, .zona:hover { border-color: var(--acento); background: color-mix(in srgb, var(--acento) 8%, transparent); }
+  .zona input { display: none; }
+
+  .miniaturas { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0 2px; scrollbar-width: thin; }
+  .miniaturas:empty { display: none; }
+  .mini {
+    flex: 0 0 auto; width: 64px; height: 64px; border-radius: 8px; overflow: hidden; padding: 0;
+    border: 2px solid transparent; background: var(--chip); cursor: pointer; position: relative;
+  }
+  .mini canvas { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .mini.activa { border-color: var(--acento); }
+  .mini.mas { display: grid; place-items: center; font-size: .8rem; color: var(--suave); cursor: default; }
+  .info-lote { display: flex; justify-content: space-between; align-items: center; font-size: .85rem; color: var(--suave); margin-top: 6px; }
+  .info-lote:empty { display: none; }
+  .enlace { background: none; border: 0; color: var(--acento); cursor: pointer; padding: 4px; font-weight: 600; }
+
+  /* Comparador antes / después */
+  .comparador {
+    position: relative; border-radius: 10px; overflow: hidden; background: #000;
+    touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: ew-resize;
+    min-height: 220px; display: grid; place-items: center;
+  }
+  .comparador canvas { display: block; width: 100%; height: auto; }
+  .comparador #lienzoAntes { position: absolute; inset: 0; height: 100%; clip-path: inset(0 50% 0 0); }
+  .linea {
+    position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; background: #fff;
+    box-shadow: 0 0 6px rgba(0,0,0,.6); pointer-events: none; transform: translateX(-1px);
+  }
+  .linea::after {
+    content: "‹ ›"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 34px; height: 34px; border-radius: 50%; background: #fff; color: #111;
+    display: grid; place-items: center; font-weight: 700; font-size: 14px; box-shadow: 0 1px 6px rgba(0,0,0,.4);
+  }
+  .etiqueta {
+    position: absolute; top: 8px; padding: 2px 8px; border-radius: 6px; font-size: .75rem;
+    background: rgba(0,0,0,.55); color: #fff; pointer-events: none;
+  }
+  .etiqueta.izq { left: 8px; } .etiqueta.der { right: 8px; }
+  .vacio { color: #9fb3b6; text-align: center; padding: 40px 16px; font-size: .95rem; }
+  .comparador.sin-foto { cursor: default; }
+  .comparador.sin-foto canvas, .comparador.sin-foto .linea, .comparador.sin-foto .etiqueta { display: none; }
+  .comparador:not(.sin-foto) .vacio { display: none; }
+  .pista { font-size: .8rem; color: var(--suave); margin: 8px 0 0; text-align: center; }
+
+  /* Chips de estilos y opciones */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    border: 1px solid var(--borde); background: var(--chip); border-radius: 999px;
+    padding: 7px 13px; cursor: pointer; font-size: .9rem; white-space: nowrap;
+  }
+  .chip[aria-pressed="true"] { background: var(--acento); border-color: var(--acento); color: var(--acento-texto); font-weight: 600; }
+  .chip.principal { font-weight: 600; }
+  .desc-estilo { font-size: .82rem; color: var(--suave); margin: 8px 0 0; min-height: 1.2em; }
+
+  /* Sliders */
+  .ajuste { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: center; margin-bottom: 10px; }
+  .ajuste label { font-size: .9rem; }
+  .ajuste output { font-size: .82rem; color: var(--suave); font-variant-numeric: tabular-nums; cursor: pointer; }
+  .ajuste input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--acento); height: 28px; margin: 0; }
+  .fila { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+  .interruptor { display: flex; align-items: center; gap: 8px; font-size: .9rem; cursor: pointer; }
+  .interruptor input { width: 18px; height: 18px; accent-color: var(--acento); }
+
+  .campo { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; flex: 1 1 140px; }
+  .campo label { font-size: .85rem; color: var(--suave); }
+  .campo input[type=text], .campo select, .campo input[type=number] {
+    padding: 9px 10px; border: 1px solid var(--borde); border-radius: 9px; background: var(--fondo); width: 100%;
+  }
+  .campo input[type=range] { accent-color: var(--acento); width: 100%; }
+  .boton-sec {
+    border: 1px solid var(--borde); background: var(--chip); border-radius: 9px; padding: 8px 12px; cursor: pointer;
+  }
+  .logo-info { font-size: .82rem; color: var(--suave); }
+
+  details > summary { cursor: pointer; list-style: none; font-weight: 600; font-size: .95rem; }
+  details > summary::-webkit-details-marker { display: none; }
+  details > summary::after { content: " ▾"; color: var(--suave); }
+  details[open] > summary::after { content: " ▴"; }
+  details[open] > summary { margin-bottom: 12px; }
+
+  /* Barra inferior fija */
+  .barra {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+    background: color-mix(in srgb, var(--panel) 92%, transparent); backdrop-filter: blur(8px);
+    border-top: 1px solid var(--borde); padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  }
+  .barra .contenedor { display: flex; gap: 10px; align-items: center; padding: 0; }
+  .boton-principal {
+    flex: 1; border: 0; border-radius: 12px; padding: 14px 16px; font-weight: 700; font-size: 1rem;
+    background: var(--acento); color: var(--acento-texto); cursor: pointer;
+  }
+  .boton-principal:disabled { opacity: .45; cursor: not-allowed; }
+  .progreso { height: 6px; border-radius: 4px; background: var(--chip); overflow: hidden; margin-top: 6px; }
+  .progreso div { height: 100%; width: 0; background: var(--acento-2); transition: width .2s; }
+
+  /* Resultados */
+  #resultados[hidden] { display: none; }
+  .acciones { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .acciones .boton-principal { flex: 1 1 160px; padding: 11px 14px; font-size: .95rem; }
+  .lista { list-style: none; margin: 0; padding: 0; max-height: 260px; overflow: auto; }
+  .lista li { display: flex; justify-content: space-between; gap: 8px; padding: 7px 0; border-top: 1px solid var(--borde); font-size: .88rem; }
+  .lista li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lista a { color: var(--acento); font-weight: 600; text-decoration: none; flex: 0 0 auto; }
+  .lista .error { color: var(--peligro); }
+  .nota { font-size: .8rem; color: var(--suave); margin: 8px 0 0; }
+
+  footer { color: var(--suave); font-size: .8rem; text-align: center; padding: 24px 0 8px; }
+</style>
+</head>
+<body>
+<div class="contenedor">
+  <header>
+    <h1>📸 Editor de Fotos Excursión</h1>
+    <p>Edita tus fotos en lote: buggy, cenotes, cuevas y selva. <span class="candado">🔒 Tus fotos no salen de tu dispositivo.</span></p>
+  </header>
+
+  <div class="rejilla">
+    <!-- Columna izquierda: subir + vista previa -->
+    <div class="col-vista">
+      <section class="panel">
+        <label class="zona" id="zona">
+          <input type="file" id="entrada" accept="image/*" multiple>
+          <strong>Toca para elegir fotos</strong>
+          <span>o arrástralas aquí · JPG, PNG, WebP</span>
+        </label>
+        <div class="miniaturas" id="miniaturas"></div>
+        <div class="info-lote" id="infoLote"></div>
+      </section>
+
+      <section class="panel">
+        <div class="comparador sin-foto" id="comparador">
+          <canvas id="lienzoDespues"></canvas>
+          <canvas id="lienzoAntes"></canvas>
+          <div class="linea" id="linea"></div>
+          <span class="etiqueta izq">Antes</span>
+          <span class="etiqueta der">Después</span>
+          <div class="vacio">Sube fotos para ver la vista previa aquí</div>
+        </div>
+        <p class="pista">Desliza sobre la foto para comparar antes y después</p>
+      </section>
+    </div>
+
+    <!-- Columna derecha: controles -->
+    <div>
+      <section class="panel">
+        <h2>Estilo</h2>
+        <div class="chips" id="chipsEstilos"></div>
+        <p class="desc-estilo" id="descEstilo"></p>
+      </section>
+
+      <section class="panel">
+        <details open>
+          <summary>Ajustes</summary>
+          <div id="sliders"></div>
+          <div class="fila">
+            <label class="interruptor"><input type="checkbox" id="autoExpo"> Auto exposición</label>
+            <button class="boton-sec" id="btnReset" type="button">Restablecer estilo</button>
+          </div>
+        </details>
+      </section>
+
+      <section class="panel">
+        <details>
+          <summary>Tamaño y recorte</summary>
+          <div class="campo">
+            <label>Recorte</label>
+            <div class="chips" id="chipsRecorte"></div>
+          </div>
+          <div class="fila">
+            <div class="campo">
+              <label for="ancho">Ancho máximo</label>
+              <select id="ancho">
+                <option value="0">Original</option>
+                <option value="4000">4000 px</option>
+                <option value="3000">3000 px</option>
+                <option value="2048">2048 px (recomendado)</option>
+                <option value="1600">1600 px</option>
+                <option value="1080">1080 px (redes)</option>
+              </select>
+            </div>
+            <div class="campo">
+              <label for="formato">Formato</label>
+              <select id="formato">
+                <option value="image/jpeg">JPG</option>
+                <option value="image/webp">WebP</option>
+              </select>
+            </div>
+          </div>
+          <div class="campo">
+            <label for="calidad">Calidad: <span id="calidadVal"></span></label>
+            <input type="range" id="calidad" min="60" max="100" step="1">
+          </div>
+        </details>
+      </section>
+
+      <section class="panel">
+        <details>
+          <summary>Marca de agua</summary>
+          <div class="campo">
+            <label for="marcaTexto">Texto</label>
+            <input type="text" id="marcaTexto" placeholder="Ej: Tours Punta Cana" maxlength="60">
+          </div>
+          <div class="campo">
+            <label>Logo (PNG con fondo transparente)</label>
+            <div class="fila" style="justify-content:flex-start">
+              <label class="boton-sec" for="marcaLogo">Elegir logo</label>
+              <input type="file" id="marcaLogo" accept="image/*" hidden>
+              <button class="enlace" id="quitarLogo" type="button" hidden>Quitar</button>
+              <span class="logo-info" id="logoInfo">Sin logo</span>
+            </div>
+          </div>
+          <div class="fila">
+            <div class="campo">
+              <label for="marcaPos">Posición</label>
+              <select id="marcaPos">
+                <option value="br">Abajo derecha</option>
+                <option value="bl">Abajo izquierda</option>
+                <option value="bc">Abajo centro</option>
+                <option value="tr">Arriba derecha</option>
+                <option value="tl">Arriba izquierda</option>
+                <option value="c">Centro</option>
+              </select>
+            </div>
+          </div>
+          <div class="campo">
+            <label for="marcaTam">Tamaño: <span id="marcaTamVal"></span></label>
+            <input type="range" id="marcaTam" min="2" max="12" step="0.5">
+          </div>
+          <div class="campo">
+            <label for="marcaOpac">Opacidad: <span id="marcaOpacVal"></span></label>
+            <input type="range" id="marcaOpac" min="20" max="100" step="5">
+          </div>
+        </details>
+      </section>
+
+      <section class="panel" id="resultados" hidden>
+        <h2>Fotos listas</h2>
+        <div class="acciones">
+          <button class="boton-principal" id="btnZip" type="button">⬇ Descargar ZIP</button>
+          <button class="boton-principal" id="btnCompartir" type="button" hidden>Compartir / Guardar en galería</button>
+        </div>
+        <ul class="lista" id="lista"></ul>
+        <p class="nota" id="notaZip"></p>
+      </section>
+    </div>
+  </div>
+
+  <footer>Todo el procesamiento ocurre en tu navegador. Funciona en móvil y PC.</footer>
+</div>
+
+<div class="barra">
+  <div class="contenedor">
+    <div style="flex:1">
+      <button class="boton-principal" id="btnProcesar" type="button" disabled style="width:100%">Sube fotos para empezar</button>
+      <div class="progreso" id="progreso" hidden><div id="progresoBarra"></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* =====================================================================
+   1) ESTILOS PREDEFINIDOS
+   Valores en las mismas unidades que los sliders:
+   exposicion: pasos EV (-1 a 1) | contraste, saturacion, vibrance: -100 a 100
+   calidez: -30 a 30 | sombras, luces: -100 a 100 (luces negativas = recuperar cielos)
+   agua: realza turquesa/azul | verdes: realza vegetación | nitidez: 0 a 100
+   ===================================================================== */
+const ESTILOS = {
+  vivido:  { nombre: "Vívido excursión", principal: true,
+             desc: "Colores vivos y naturales. El estilo general para cualquier tour.",
+             a: { exposicion: 0.05, contraste: 12, saturacion: 5, vibrance: 35, calidez: 4, sombras: 25, luces: -25, agua: 25, verdes: 20, nitidez: 40 } },
+  cenote:  { nombre: "Cenote / Cueva",
+             desc: "Sube las sombras, cuida los rayos de luz y realza el agua turquesa.",
+             a: { exposicion: 0.10, contraste: 8, saturacion: 0, vibrance: 30, calidez: -2, sombras: 55, luces: -45, agua: 45, verdes: 10, nitidez: 35 } },
+  selva:   { nombre: "Selva / Monos",
+             desc: "Verdes densos y más detalle entre luz y sombra.",
+             a: { exposicion: 0.05, contraste: 15, saturacion: 0, vibrance: 30, calidez: 3, sombras: 35, luces: -30, agua: 10, verdes: 35, nitidez: 45 } },
+  buggy:   { nombre: "Buggy / Sol",
+             desc: "Para mucho sol y polvo: baja las luces fuertes y da un toque cálido a la tierra.",
+             a: { exposicion: -0.05, contraste: 10, saturacion: 0, vibrance: 25, calidez: 6, sombras: 25, luces: -40, agua: 10, verdes: 15, nitidez: 40 } },
+  natural: { nombre: "Natural",
+             desc: "Corrección suave, casi sin cambiar los colores.",
+             a: { exposicion: 0, contraste: 5, saturacion: 5, vibrance: 10, calidez: 0, sombras: 10, luces: -10, agua: 0, verdes: 0, nitidez: 30 } },
+};
+
+const AJUSTES = [
+  { id: "exposicion", nombre: "Exposición", min: -1,   max: 1,   paso: 0.05, fmt: v => (v > 0 ? "+" : "") + v.toFixed(2) + " EV" },
+  { id: "contraste",  nombre: "Contraste",  min: -50,  max: 50,  paso: 1 },
+  { id: "vibrance",   nombre: "Intensidad (vibrance)", min: -100, max: 100, paso: 1 },
+  { id: "saturacion", nombre: "Saturación", min: -100, max: 100, paso: 1 },
+  { id: "calidez",    nombre: "Calidez",    min: -30,  max: 30,  paso: 1 },
+  { id: "sombras",    nombre: "Sombras",    min: -100, max: 100, paso: 1 },
+  { id: "luces",      nombre: "Luces altas", min: -100, max: 100, paso: 1 },
+  { id: "agua",       nombre: "Agua turquesa", min: -50, max: 100, paso: 1 },
+  { id: "verdes",     nombre: "Verdes",     min: -50,  max: 100, paso: 1 },
+  { id: "nitidez",    nombre: "Nitidez",    min: 0,    max: 100, paso: 1 },
+];
+
+const RECORTES = [
+  { id: "original", nombre: "Original", r: 0 },
+  { id: "4:5",  nombre: "4:5 Instagram", r: 4 / 5 },
+  { id: "1:1",  nombre: "1:1", r: 1 },
+  { id: "16:9", nombre: "16:9", r: 16 / 9 },
+  { id: "9:16", nombre: "9:16 Historias", r: 9 / 16 },
+  { id: "3:2",  nombre: "3:2", r: 3 / 2 },
+];
+
+const LADO_PREVIA = 1200;          // tamaño de la vista previa (rápida)
+const MAX_PIXELES = 16000000;      // límite de iPhone/Safari para un canvas (~16 MP)
+const FOTOS_POR_ZIP = 40;          // en lotes grandes, varios ZIP para no agotar la memoria del móvil
+const MAX_MINIATURAS = 80;
+const CLAVE_GUARDADO = "editorFotosExcursion.v1";
+
+/* =====================================================================
+   2) ESTADO
+   ===================================================================== */
+let estado = {
+  estilo: "vivido",
+  ajustes: { ...ESTILOS.vivido.a },
+  auto: true,
+  recorte: "original",
+  ancho: 2048,
+  formato: "image/jpeg",
+  calidad: 92,
+  marca: { texto: "", pos: "br", tam: 4, opac: 75 },
+};
+let fotos = [];            // [{ file, nombre }]
+let actual = -1;           // índice de la foto en vista previa
+let fuentePrevia = null;   // canvas pequeño con la foto actual (sin editar)
+let logo = null;           // canvas con el logo
+let resultados = [];       // [{ nombre, blob, url }]
+let procesando = false;
+let posComparador = 0.5;
+
+const $ = id => document.getElementById(id);
+
+/* ----- Guardar / cargar el último estilo en localStorage (con try/catch) ----- */
+function cargarEstado() {
+  try {
+    const t = localStorage.getItem(CLAVE_GUARDADO);
+    if (!t) return;
+    const g = JSON.parse(t);
+    estado = { ...estado, ...g, ajustes: { ...estado.ajustes, ...(g.ajustes || {}) }, marca: { ...estado.marca, ...(g.marca || {}) } };
+  } catch (e) { /* modo privado o datos dañados: usamos los valores por defecto */ }
+}
+let temporizadorGuardar = 0;
+function guardarEstado() {
+  clearTimeout(temporizadorGuardar);
+  temporizadorGuardar = setTimeout(() => {
+    try { localStorage.setItem(CLAVE_GUARDADO, JSON.stringify(estado)); } catch (e) { /* sin almacenamiento */ }
+  }, 300);
+}
+
+/* =====================================================================
+   3) MOTOR DE EDICIÓN (trabaja sobre los píxeles del canvas)
+   ===================================================================== */
+const limitar = (v, a, b) => v < a ? a : v > b ? b : v;
+
+// Tono (0-360) de un color RGB
+function tono(r, g, b) {
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  if (d === 0) return 0;
+  let h;
+  if (mx === r) h = ((g - b) / d) % 6;
+  else if (mx === g) h = (b - r) / d + 2;
+  else h = (r - g) / d + 4;
+  h *= 60;
+  return h < 0 ? h + 360 : h;
+}
+
+// Igual que autocorregir_exposicion() del script de Python
+function factorAutoExposicion(d) {
+  let suma = 0, n = 0;
+  const salto = Math.max(1, Math.floor(d.length / 4 / 60000)) * 4; // muestreo para ir rápido
+  for (let i = 0; i < d.length; i += salto) { suma += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]; n++; }
+  const prom = (suma / n) || 1;
+  return limitar(120 / prom, 0.8, 1.4);
+}
+
+function aplicarAjustes(img, a, auto) {
+  const d = img.data;
+  const mult = (auto ? factorAutoExposicion(d) : 1) * Math.pow(2, a.exposicion);
+  const c = 1 + a.contraste / 100;
+  const sh = a.sombras / 100, hl = a.luces / 100;
+  const k = a.calidez;
+  const sat = 1 + a.saturacion / 100, vib = a.vibrance / 100;
+  const agua = a.agua / 100, verdes = a.verdes / 100;
+  const usarSH = sh !== 0 || hl !== 0;
+  const usarTono = agua !== 0 || verdes !== 0;
+  const usarColor = sat !== 1 || vib !== 0 || usarTono;
+
+  for (let i = 0; i < d.length; i += 4) {
+    // Exposición (multiplicador)
+    let r = d[i] * mult, g = d[i + 1] * mult, b = d[i + 2] * mult;
+
+    // Sombras y luces: según la luminosidad del píxel, sin cambiar el color
+    if (usarSH) {
+      const L = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      if (L > 0.0005) {
+        const Lc = L > 1.5 ? 1.5 : L;
+        const inv = Lc < 1 ? 1 - Lc : 0;
+        // sombras: afecta sobre todo los tonos oscuros | luces: los muy claros (recupera rayos de luz y cielos)
+        let nL = L + sh * Lc * inv * inv * inv + hl * 0.35 * Lc * Lc * Lc * Lc;
+        if (nL < 0) nL = 0;
+        let gan = nL / L;
+        if (gan > 3) gan = 3; // evita amplificar ruido en negros
+        r *= gan; g *= gan; b *= gan;
+      }
+    }
+
+    // Contraste (alrededor del gris medio) y calidez (más rojo, menos azul)
+    r = (r - 128) * c + 128 + k;
+    g = (g - 128) * c + 128;
+    b = (b - 128) * c + 128 - k;
+    r = r < 0 ? 0 : r > 255 ? 255 : r;
+    g = g < 0 ? 0 : g > 255 ? 255 : g;
+    b = b < 0 ? 0 : b > 255 ? 255 : b;
+
+    // Color: saturación + vibrance (protege la piel) + realce de agua y verdes
+    if (usarColor) {
+      const mx = r > g ? (r > b ? r : b) : (g > b ? g : b);
+      const mn = r < g ? (r < b ? r : b) : (g < b ? g : b);
+      const croma = (mx - mn) / 255;
+      if (croma > 0.004) {
+        // Detección simple de piel: rojo > verde > azul con tono naranja suave
+        let piel = 0;
+        if (r > g && g > b && croma > 0.06 && croma < 0.7) {
+          const h = 60 * (g - b) / (r - b);         // 0..60 grados
+          if (h > 5 && h < 50) piel = 1 - Math.abs(h - 25) / 25;
+          if (piel < 0) piel = 0;
+        }
+        const gris = 0.299 * r + 0.587 * g + 0.114 * b;
+        // Vibrance: sube más los colores apagados que los que ya son vivos
+        let extra = vib * (1 - croma) * (1 - 0.75 * piel);
+        if (usarTono) {
+          const h = tono(r, g, b);
+          const dAgua = Math.abs(h - 185);           // cian / turquesa
+          if (dAgua < 40) extra += agua * 0.8 * (1 - dAgua / 40) * (1 - piel);
+          const dVerde = Math.abs(h - 105);          // verde hoja / verde amarillo
+          if (dVerde < 50) extra += verdes * 0.6 * (1 - dVerde / 50);
+        }
+        // En zonas muy oscuras (cuevas) el color es casi todo ruido: se realza menos
+        if (gris < 50) extra *= gris / 50;
+        let f = sat + extra;
+        if (f < 0) f = 0;
+        r = gris + (r - gris) * f;
+        g = gris + (g - gris) * f;
+        b = gris + (b - gris) * f;
+      }
+    }
+    d[i] = r; d[i + 1] = g; d[i + 2] = b;   // Uint8ClampedArray limita a 0-255 solo
+  }
+
+  if (a.nitidez > 0) {
+    const lado = Math.max(img.width, img.height);
+    const radio = Math.max(1, Math.round(lado / 1500)); // mismo efecto en vista previa y foto final
+    enfocar(img, (a.nitidez / 100) * 1.2, radio);
+  }
+}
+
+// Nitidez tipo "unsharp mask" solo sobre la luminosidad (evita bordes de colores)
+function enfocar(img, cantidad, radio) {
+  const w = img.width, h = img.height, d = img.data, n = w * h;
+  const Y = new Float32Array(n);
+  for (let p = 0, i = 0; p < n; p++, i += 4) Y[p] = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+  const T = new Float32Array(n);
+  const ventana = 2 * radio + 1;
+  // Desenfoque horizontal (caja)
+  for (let y = 0; y < h; y++) {
+    const fila = y * w;
+    let s = 0;
+    for (let x = -radio; x <= radio; x++) s += Y[fila + limitar(x, 0, w - 1)];
+    for (let x = 0; x < w; x++) {
+      T[fila + x] = s / ventana;
+      s += Y[fila + Math.min(x + radio + 1, w - 1)] - Y[fila + Math.max(x - radio, 0)];
+    }
+  }
+  // Desenfoque vertical y se aplica la diferencia directamente
+  for (let x = 0; x < w; x++) {
+    let s = 0;
+    for (let y = -radio; y <= radio; y++) s += T[limitar(y, 0, h - 1) * w + x];
+    for (let y = 0; y < h; y++) {
+      const p = y * w + x;
+      const det = (Y[p] - s / ventana) * cantidad;
+      const i = p * 4;
+      d[i] += det; d[i + 1] += det; d[i + 2] += det;
+      s += T[Math.min(y + radio + 1, h - 1) * w + x] - T[Math.max(y - radio, 0) * w + x];
+    }
+  }
+}
+
+// Rectángulo de recorte centrado
+function rectRecorte(w, h, r) {
+  if (!r) return { sx: 0, sy: 0, sw: w, sh: h };
+  if (w / h > r) { const sw = Math.round(h * r); return { sx: Math.round((w - sw) / 2), sy: 0, sw, sh: h }; }
+  const sh = Math.round(w / r);
+  return { sx: 0, sy: Math.round((h - sh) / 2), sw: w, sh };
+}
+
+// Marca de agua (texto y/o logo). El tamaño es relativo a la foto, así se ve igual en la vista previa.
+function dibujarMarca(ctx, w, h) {
+  const m = estado.marca;
+  const texto = (m.texto || "").trim();
+  if (!texto && !logo) return;
+  const base = Math.min(w, h);
+  const alto = base * m.tam / 100;             // alto del texto
+  const margen = base * 0.03;
+  ctx.save();
+  ctx.globalAlpha = m.opac / 100;
+  ctx.font = `600 ${alto}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
+  ctx.textBaseline = "middle";
+  const tw = texto ? ctx.measureText(texto).width : 0;
+  const lh = logo ? alto * 2.2 : 0;
+  const lw = logo ? lh * logo.width / logo.height : 0;
+  const sep = logo && texto ? alto * 0.5 : 0;
+  const anchoTotal = lw + sep + tw, altoTotal = Math.max(lh, alto);
+
+  let x, y;
+  if (m.pos === "c") { x = (w - anchoTotal) / 2; y = (h - altoTotal) / 2; }
+  else {
+    x = m.pos.endsWith("l") ? margen : m.pos.endsWith("c") ? (w - anchoTotal) / 2 : w - margen - anchoTotal;
+    y = m.pos.startsWith("t") ? margen : h - margen - altoTotal;
+  }
+  ctx.shadowColor = "rgba(0,0,0,.55)";
+  ctx.shadowBlur = alto * 0.35;
+  if (logo) ctx.drawImage(logo, x, y + (altoTotal - lh) / 2, lw, lh);
+  if (texto) { ctx.fillStyle = "#fff"; ctx.fillText(texto, x + lw + sep, y + altoTotal / 2); }
+  ctx.restore();
+}
+
+/* =====================================================================
+   4) CARGA DE IMÁGENES
+   Se usa <img> porque todos los navegadores modernos aplican la rotación
+   EXIF de las fotos de celular al dibujarla en el canvas.
+   ===================================================================== */
+function cargarImagen(file) {
+  return new Promise((resolver, rechazar) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.decoding = "async";
+    img.onload = () => resolver({ img, w: img.naturalWidth, h: img.naturalHeight, liberar: () => { URL.revokeObjectURL(url); img.src = ""; } });
+    img.onerror = () => { URL.revokeObjectURL(url); rechazar(new Error("Formato no compatible")); };
+    img.src = url;
+  });
+}
+
+function crearCanvas(w, h) {
+  const cv = document.createElement("canvas");
+  cv.width = w; cv.height = h;
+  return cv;
+}
+function liberarCanvas(cv) { if (cv) { cv.width = 0; cv.height = 0; } }
+const pausa = () => new Promise(r => setTimeout(r, 0));
+
+/* =====================================================================
+   5) INTERFAZ
+   ===================================================================== */
+function crearChipsEstilos() {
+  const cont = $("chipsEstilos");
+  cont.innerHTML = "";
+  for (const [id, e] of Object.entries(ESTILOS)) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip" + (e.principal ? " principal" : "");
+    b.textContent = e.nombre; b.dataset.id = id;
+    b.onclick = () => elegirEstilo(id);
+    cont.appendChild(b);
+  }
+  const p = document.createElement("button");
+  p.type = "button"; p.className = "chip"; p.textContent = "Personalizado"; p.dataset.id = "personalizado"; p.disabled = true;
+  cont.appendChild(p);
+}
+function marcarEstilo() {
+  for (const b of $("chipsEstilos").children) {
+    b.setAttribute("aria-pressed", String(b.dataset.id === estado.estilo));
+    if (b.dataset.id === "personalizado") b.hidden = estado.estilo !== "personalizado";
+  }
+  $("descEstilo").textContent = ESTILOS[estado.estilo]?.desc || "Ajustes a tu gusto (se guardan para la próxima vez).";
+}
+function elegirEstilo(id) {
+  estado.estilo = id;
+  estado.ajustes = { ...ESTILOS[id].a };
+  marcarEstilo(); sincronizarSliders(); cambio();
+}
+
+function crearSliders() {
+  const cont = $("sliders");
+  for (const aj of AJUSTES) {
+    const div = document.createElement("div");
+    div.className = "ajuste";
+    div.innerHTML = `<label for="aj-${aj.id}">${aj.nombre}</label><output id="val-${aj.id}" title="Toca para volver al valor del estilo"></output>
+      <input type="range" id="aj-${aj.id}" min="${aj.min}" max="${aj.max}" step="${aj.paso}">`;
+    cont.appendChild(div);
+    const input = div.querySelector("input");
+    input.addEventListener("input", () => {
+      estado.ajustes[aj.id] = parseFloat(input.value);
+      if (estado.estilo !== "personalizado") { estado.estiloBase = estado.estilo; estado.estilo = "personalizado"; marcarEstilo(); }
+      mostrarValor(aj); cambio();
+    });
+    // Tocar el número regresa ese ajuste al valor del estilo base
+    div.querySelector("output").addEventListener("click", () => {
+      const base = ESTILOS[estado.estilo] || ESTILOS[estado.estiloBase] || ESTILOS.vivido;
+      estado.ajustes[aj.id] = base.a[aj.id];
+      sincronizarSliders(); cambio();
+    });
+  }
+}
+function mostrarValor(aj) {
+  const v = estado.ajustes[aj.id];
+  $("val-" + aj.id).textContent = aj.fmt ? aj.fmt(v) : (v > 0 ? "+" : "") + Math.round(v);
+}
+function sincronizarSliders() {
+  for (const aj of AJUSTES) { $("aj-" + aj.id).value = estado.ajustes[aj.id]; mostrarValor(aj); }
+  $("autoExpo").checked = estado.auto;
+}
+
+function crearChipsRecorte() {
+  const cont = $("chipsRecorte");
+  for (const r of RECORTES) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.textContent = r.nombre; b.dataset.id = r.id;
+    b.onclick = () => { estado.recorte = r.id; marcarRecorte(); cambio(); };
+    cont.appendChild(b);
+  }
+}
+function marcarRecorte() {
+  for (const b of $("chipsRecorte").children) b.setAttribute("aria-pressed", String(b.dataset.id === estado.recorte));
+}
+const ratioActual = () => (RECORTES.find(r => r.id === estado.recorte) || RECORTES[0]).r;
+
+function sincronizarSalida() {
+  $("ancho").value = String(estado.ancho);
+  $("formato").value = estado.formato;
+  $("calidad").value = estado.calidad; $("calidadVal").textContent = estado.calidad + "%";
+  $("marcaTexto").value = estado.marca.texto;
+  $("marcaPos").value = estado.marca.pos;
+  $("marcaTam").value = estado.marca.tam; $("marcaTamVal").textContent = estado.marca.tam + "%";
+  $("marcaOpac").value = estado.marca.opac; $("marcaOpacVal").textContent = estado.marca.opac + "%";
+}
+
+// Cualquier cambio: redibuja la vista previa y guarda
+function cambio() { pedirRender(); guardarEstado(); invalidarResultados(); }
+
+/* ----- Subir fotos ----- */
+function agregarFotos(lista) {
+  const nuevas = [...lista].filter(f => f.type.startsWith("image/") || /\.(jpe?g|png|webp|heic|avif)$/i.test(f.name));
+  if (!nuevas.length) return;
+  const inicio = fotos.length;
+  for (const f of nuevas) fotos.push({ file: f, nombre: f.name });
+  actualizarLote();
+  generarMiniaturas(inicio);
+  if (actual < 0) seleccionar(0);
+  invalidarResultados();
+}
+
+function actualizarLote() {
+  const n = fotos.length;
+  $("infoLote").innerHTML = n ? `<span>${n} foto${n > 1 ? "s" : ""} en el lote</span><button class="enlace" id="btnVaciar" type="button">Quitar todas</button>` : "";
+  if (n) $("btnVaciar").onclick = vaciar;
+  const b = $("btnProcesar");
+  b.disabled = !n || procesando;
+  if (!procesando) b.textContent = n ? `Procesar ${n} foto${n > 1 ? "s" : ""}` : "Sube fotos para empezar";
+}
+
+function vaciar() {
+  if (procesando) return;
+  fotos = []; actual = -1;
+  liberarCanvas(fuentePrevia); fuentePrevia = null;
+  for (const c of $("miniaturas").querySelectorAll("canvas")) liberarCanvas(c);
+  $("miniaturas").innerHTML = "";
+  $("comparador").classList.add("sin-foto");
+  limpiarResultados();
+  actualizarLote();
+}
+
+let colaMiniaturas = Promise.resolve();
+function generarMiniaturas(desde) {
+  const cont = $("miniaturas");
+  // Se generan una por una para no llenar la memoria del móvil
+  colaMiniaturas = colaMiniaturas.then(async () => {
+    for (let i = desde; i < fotos.length; i++) {
+      if (!fotos[i]) return; // se vació el lote
+      if (i >= MAX_MINIATURAS) {
+        let mas = cont.querySelector(".mas");
+        if (!mas) { mas = document.createElement("div"); mas.className = "mini mas"; cont.appendChild(mas); }
+        mas.textContent = "+" + (fotos.length - MAX_MINIATURAS);
+        return;
+      }
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "mini"; b.dataset.i = i; b.title = fotos[i].nombre;
+      b.onclick = () => seleccionar(i);
+      cont.appendChild(b);
+      try {
+        const c = await cargarImagen(fotos[i].file);
+        const lado = 128, e = lado / Math.min(c.w, c.h);
+        const cv = crearCanvas(lado, lado);
+        cv.getContext("2d").drawImage(c.img, (lado - c.w * e) / 2, (lado - c.h * e) / 2, c.w * e, c.h * e);
+        c.liberar();
+        b.appendChild(cv);
+      } catch (e) { b.textContent = "⚠"; }
+      if (i === actual) b.classList.add("activa");
+      await pausa();
+    }
+  });
+}
+
+async function seleccionar(i) {
+  if (!fotos[i]) return;
+  actual = i;
+  for (const m of $("miniaturas").querySelectorAll(".mini")) m.classList.toggle("activa", Number(m.dataset.i) === i);
+  try {
+    const c = await cargarImagen(fotos[i].file);
+    if (actual !== i) { c.liberar(); return; }
+    const e = Math.min(1, LADO_PREVIA / Math.max(c.w, c.h));
+    liberarCanvas(fuentePrevia);
+    fuentePrevia = crearCanvas(Math.round(c.w * e), Math.round(c.h * e));
+    const ctx = fuentePrevia.getContext("2d");
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(c.img, 0, 0, fuentePrevia.width, fuentePrevia.height);
+    c.liberar();
+    $("comparador").classList.remove("sin-foto");
+    pedirRender();
+  } catch (err) {
+    alert("No se pudo abrir " + fotos[i].nombre + ". " + err.message + " (si es HEIC, conviértela a JPG).");
+  }
+}
+
+/* ----- Vista previa ----- */
+let renderPendiente = false;
+function pedirRender() {
+  if (renderPendiente || !fuentePrevia) return;
+  renderPendiente = true;
+  requestAnimationFrame(() => { renderPendiente = false; renderizar(); });
+}
+function renderizar() {
+  if (!fuentePrevia) return;
+  const r = rectRecorte(fuentePrevia.width, fuentePrevia.height, ratioActual());
+  const antes = $("lienzoAntes"), despues = $("lienzoDespues");
+  for (const cv of [antes, despues]) {
+    if (cv.width !== r.sw || cv.height !== r.sh) { cv.width = r.sw; cv.height = r.sh; }
+  }
+  const ca = antes.getContext("2d");
+  ca.drawImage(fuentePrevia, r.sx, r.sy, r.sw, r.sh, 0, 0, r.sw, r.sh);
+  const cd = despues.getContext("2d", { willReadFrequently: true });
+  cd.drawImage(fuentePrevia, r.sx, r.sy, r.sw, r.sh, 0, 0, r.sw, r.sh);
+  const datos = cd.getImageData(0, 0, r.sw, r.sh);
+  aplicarAjustes(datos, estado.ajustes, estado.auto);
+  cd.putImageData(datos, 0, 0);
+  dibujarMarca(cd, r.sw, r.sh);
+  dibujarMarca(ca, r.sw, r.sh); // la marca también en "antes", así solo se compara la edición
+}
+
+/* ----- Comparador deslizable ----- */
+function moverComparador(clientX) {
+  const rect = $("comparador").getBoundingClientRect();
+  posComparador = limitar((clientX - rect.left) / rect.width, 0, 1);
+  const pct = (posComparador * 100).toFixed(2);
+  $("lienzoAntes").style.clipPath = `inset(0 ${(100 - pct).toFixed(2)}% 0 0)`;
+  $("linea").style.left = pct + "%";
+}
+function iniciarComparador() {
+  const comp = $("comparador");
+  let arrastrando = false;
+  comp.addEventListener("pointerdown", e => { arrastrando = true; comp.setPointerCapture(e.pointerId); moverComparador(e.clientX); });
+  comp.addEventListener("pointermove", e => { if (arrastrando) moverComparador(e.clientX); });
+  const soltar = () => { arrastrando = false; };
+  comp.addEventListener("pointerup", soltar);
+  comp.addEventListener("pointercancel", soltar);
+}
+
+/* =====================================================================
+   6) PROCESAR EL LOTE COMPLETO (resolución final)
+   ===================================================================== */
+async function procesarFoto(file) {
+  const c = await cargarImagen(file);
+  const r = rectRecorte(c.w, c.h, ratioActual());
+  let e = 1;
+  if (estado.ancho && r.sw > estado.ancho) e = estado.ancho / r.sw;
+  if (r.sw * r.sh * e * e > MAX_PIXELES) e = Math.sqrt(MAX_PIXELES / (r.sw * r.sh));
+  const w = Math.max(1, Math.round(r.sw * e)), h = Math.max(1, Math.round(r.sh * e));
+
+  let cv = crearCanvas(w, h);
+  try {
+    const ctx = cv.getContext("2d", { willReadFrequently: true });
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(c.img, r.sx, r.sy, r.sw, r.sh, 0, 0, w, h);
+    c.liberar();
+    const datos = ctx.getImageData(0, 0, w, h);
+    aplicarAjustes(datos, estado.ajustes, estado.auto);
+    ctx.putImageData(datos, 0, 0);
+    dibujarMarca(ctx, w, h);
+    const blob = await new Promise(res => cv.toBlob(res, estado.formato, estado.calidad / 100));
+    if (!blob) throw new Error("No se pudo guardar la imagen");
+    return blob;
+  } finally {
+    c.liberar();
+    liberarCanvas(cv); cv = null; // libera la memoria antes de la siguiente foto
+  }
+}
+
+function nombreSalida(original, usados) {
+  const ext = estado.formato === "image/webp" ? ".webp" : ".jpg";
+  const base = original.replace(/\.[^.]+$/, "") || "foto";
+  let nombre = base + ext, n = 2;
+  while (usados.has(nombre.toLowerCase())) nombre = `${base}_${n++}${ext}`;
+  usados.add(nombre.toLowerCase());
+  return nombre;
+}
+
+async function procesarLote() {
+  if (procesando || !fotos.length) return;
+  procesando = true;
+  limpiarResultados();
+  const b = $("btnProcesar");
+  b.disabled = true;
+  $("progreso").hidden = false;
+  const lista = $("lista");
+  const usados = new Set();
+  let errores = 0;
+  $("resultados").hidden = false;
+
+  for (let i = 0; i < fotos.length; i++) {
+    b.textContent = `Procesando ${i + 1} de ${fotos.length}…`;
+    $("progresoBarra").style.width = (i / fotos.length * 100) + "%";
+    await pausa(); // deja respirar a la pantalla
+    const li = document.createElement("li");
+    try {
+      const blob = await procesarFoto(fotos[i].file);
+      const nombre = nombreSalida(fotos[i].nombre, usados);
+      const url = URL.createObjectURL(blob);
+      resultados.push({ nombre, blob, url });
+      li.innerHTML = `<span></span><a download>Descargar</a>`;
+      li.querySelector("span").textContent = `${nombre} · ${(blob.size / 1048576).toFixed(1)} MB`;
+      const a = li.querySelector("a"); a.href = url; a.download = nombre;
+    } catch (err) {
+      errores++;
+      li.innerHTML = `<span class="error"></span>`;
+      li.querySelector("span").textContent = `${fotos[i].nombre}: ${err.message || "error"}`;
+    }
+    lista.appendChild(li);
+  }
+
+  $("progresoBarra").style.width = "100%";
+  procesando = false;
+  actualizarLote();
+  const ok = resultados.length;
+  b.textContent = `Listo: ${ok} editada${ok !== 1 ? "s" : ""}${errores ? `, ${errores} con error` : ""} · Procesar de nuevo`;
+  prepararDescargas();
+  $("resultados").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function prepararDescargas() {
+  const ok = resultados.length;
+  const partes = Math.ceil(ok / FOTOS_POR_ZIP);
+  $("btnZip").textContent = partes > 1 ? `⬇ Descargar ZIP (${partes} partes)` : "⬇ Descargar ZIP";
+  $("btnZip").disabled = !ok;
+  $("notaZip").textContent = partes > 1
+    ? `Son muchas fotos: se descargan en ${partes} archivos ZIP de hasta ${FOTOS_POR_ZIP} fotos para no trabar el móvil.`
+    : "En el móvil, “Compartir” permite guardar las fotos directo en la galería.";
+  // Compartir (móvil): solo si el navegador puede compartir archivos
+  const archivos = resultados.slice(0, 30).map(r => new File([r.blob], r.nombre, { type: r.blob.type }));
+  const puede = ok && navigator.canShare && navigator.canShare({ files: archivos });
+  $("btnCompartir").hidden = !puede;
+  $("btnCompartir").textContent = ok > 30 ? "Compartir las primeras 30" : "Compartir / Guardar en galería";
+  $("btnCompartir").onclick = async () => {
+    try { await navigator.share({ files: archivos, title: "Fotos editadas" }); }
+    catch (e) { if (e.name !== "AbortError") alert("No se pudo compartir: " + e.message); }
+  };
+}
+
+async function descargarZip() {
+  if (!resultados.length) return;
+  if (typeof JSZip === "undefined") { alert("No se pudo cargar el compresor ZIP (revisa tu conexión). Puedes descargar las fotos una por una."); return; }
+  const btn = $("btnZip");
+  btn.disabled = true;
+  const partes = Math.ceil(resultados.length / FOTOS_POR_ZIP);
+  try {
+    for (let p = 0; p < partes; p++) {
+      btn.textContent = `Creando ZIP ${partes > 1 ? (p + 1) + "/" + partes : ""}…`;
+      const zip = new JSZip();
+      for (const r of resultados.slice(p * FOTOS_POR_ZIP, (p + 1) * FOTOS_POR_ZIP)) zip.file(r.nombre, r.blob);
+      // STORE: las fotos ya están comprimidas, así es mucho más rápido
+      const contenido = await zip.generateAsync({ type: "blob", compression: "STORE" });
+      const url = URL.createObjectURL(contenido);
+      const a = document.createElement("a");
+      a.href = url; a.download = partes > 1 ? `fotos_editadas_parte${p + 1}.zip` : "fotos_editadas.zip";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      await new Promise(r => setTimeout(r, 800));
+    }
+  } catch (e) {
+    alert("Error al crear el ZIP: " + e.message);
+  }
+  btn.disabled = false;
+  prepararDescargas();
+}
+
+function limpiarResultados() {
+  for (const r of resultados) URL.revokeObjectURL(r.url);
+  resultados = [];
+  $("lista").innerHTML = "";
+  $("resultados").hidden = true;
+  $("progreso").hidden = true;
+  $("progresoBarra").style.width = "0";
+}
+// Si cambian los ajustes después de procesar, las fotos listas ya no coinciden
+function invalidarResultados() {
+  if (procesando || !resultados.length) return;
+  limpiarResultados();
+  actualizarLote();
+}
+
+/* =====================================================================
+   7) ARRANQUE
+   ===================================================================== */
+function iniciar() {
+  cargarEstado();
+  if (!ESTILOS[estado.estilo] && estado.estilo !== "personalizado") estado.estilo = "vivido";
+  crearChipsEstilos(); crearSliders(); crearChipsRecorte();
+  marcarEstilo(); sincronizarSliders(); marcarRecorte(); sincronizarSalida();
+  iniciarComparador();
+
+  $("entrada").addEventListener("change", e => { agregarFotos(e.target.files); e.target.value = ""; });
+  const zona = $("zona");
+  ["dragenter", "dragover"].forEach(ev => zona.addEventListener(ev, e => { e.preventDefault(); zona.classList.add("encima"); }));
+  ["dragleave", "drop"].forEach(ev => zona.addEventListener(ev, e => { e.preventDefault(); zona.classList.remove("encima"); }));
+  zona.addEventListener("drop", e => agregarFotos(e.dataTransfer.files));
+  // Evita que el navegador abra la foto si se suelta fuera de la zona
+  window.addEventListener("dragover", e => e.preventDefault());
+  window.addEventListener("drop", e => e.preventDefault());
+
+  $("autoExpo").addEventListener("change", e => { estado.auto = e.target.checked; cambio(); });
+  $("btnReset").addEventListener("click", () => elegirEstilo(ESTILOS[estado.estilo] ? estado.estilo : (estado.estiloBase || "vivido")));
+
+  $("ancho").addEventListener("change", e => { estado.ancho = Number(e.target.value); guardarEstado(); invalidarResultados(); });
+  $("formato").addEventListener("change", e => { estado.formato = e.target.value; guardarEstado(); invalidarResultados(); });
+  $("calidad").addEventListener("input", e => { estado.calidad = Number(e.target.value); $("calidadVal").textContent = estado.calidad + "%"; guardarEstado(); invalidarResultados(); });
+
+  $("marcaTexto").addEventListener("input", e => { estado.marca.texto = e.target.value; cambio(); });
+  $("marcaPos").addEventListener("change", e => { estado.marca.pos = e.target.value; cambio(); });
+  $("marcaTam").addEventListener("input", e => { estado.marca.tam = Number(e.target.value); $("marcaTamVal").textContent = estado.marca.tam + "%"; cambio(); });
+  $("marcaOpac").addEventListener("input", e => { estado.marca.opac = Number(e.target.value); $("marcaOpacVal").textContent = estado.marca.opac + "%"; cambio(); });
+  $("marcaLogo").addEventListener("change", async e => {
+    const f = e.target.files[0]; e.target.value = "";
+    if (!f) return;
+    try {
+      const c = await cargarImagen(f);
+      const esc = Math.min(1, 800 / Math.max(c.w, c.h));
+      liberarCanvas(logo);
+      logo = crearCanvas(Math.round(c.w * esc), Math.round(c.h * esc));
+      logo.getContext("2d").drawImage(c.img, 0, 0, logo.width, logo.height);
+      c.liberar();
+      $("logoInfo").textContent = f.name;
+      $("quitarLogo").hidden = false;
+      cambio();
+    } catch (err) { alert("No se pudo abrir el logo."); }
+  });
+  $("quitarLogo").addEventListener("click", () => {
+    liberarCanvas(logo); logo = null;
+    $("logoInfo").textContent = "Sin logo"; $("quitarLogo").hidden = true;
+    cambio();
+  });
+
+  $("btnProcesar").addEventListener("click", procesarLote);
+  $("btnZip").addEventListener("click", descargarZip);
+  window.addEventListener("beforeunload", e => { if (procesando) { e.preventDefault(); e.returnValue = ""; } });
+}
+iniciar();
+</script>
+</body>
+</html>
