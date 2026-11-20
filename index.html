@@ -8,216 +8,300 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#1b1430;--card:#261d42;--line:#3a2f5c;--ink:#f4efff;--mute:#b6abd6;--acc:#ff8a5b;--acc2:#ffd166;--ok:#7be0b0;--bad:#ff7a8a}
+:root{--bg:#1b1430;--card:#261d42;--line:#3a2f5c;--ink:#f4efff;--mute:#b6abd6;--acc:#ff8a5b;--acc2:#ffd166;--ok:#7be0b0;--bad:#ff7a8a;--field:#1f1838}
 *{box-sizing:border-box;min-width:0}
 body{margin:0;background:radial-gradient(120% 60% at 50% 0,#33245e 0,var(--bg) 60%) fixed;color:var(--ink);font:16px/1.5 Inter,system-ui,sans-serif;overflow-x:clip}
-main{max-width:640px;margin:0 auto;padding:20px 16px 80px}
+main{max-width:720px;margin:0 auto;padding:20px 16px 80px}
 h1{font:600 30px/1.1 Fraunces,Georgia,serif;margin:6px 0 4px}
 .sub{color:var(--mute);margin:0 0 18px;font-size:15px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;margin-bottom:14px}
-label.t{display:block;font-weight:600;margin:0 0 8px}
-.drop{display:grid;place-items:center;aspect-ratio:4/3;border:2px dashed var(--line);border-radius:16px;cursor:pointer;overflow:hidden;position:relative;background:#1f1838}
+label.t,.t{display:block;font-weight:600;margin:0 0 8px}
+.drop{display:grid;place-items:center;aspect-ratio:4/3;border:2px dashed var(--line);border-radius:16px;cursor:pointer;overflow:hidden;background:var(--field)}
 .drop img{width:100%;height:100%;object-fit:contain}
 .drop span{color:var(--mute);text-align:center;padding:20px}
 .drop b{display:block;color:var(--ink);font-size:18px;margin-bottom:4px}
-textarea,input[type=text],input[type=password],select{width:100%;font:16px Inter,sans-serif;color:var(--ink);background:#1f1838;border:1px solid var(--line);border-radius:12px;padding:12px}
-textarea{min-height:90px;resize:vertical}
+textarea,input[type=text],input[type=password],select{width:100%;font:16px Inter,sans-serif;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:12px;padding:12px}
+textarea{min-height:70px;resize:vertical}
 :focus-visible{outline:3px solid var(--acc2);outline-offset:2px}
-.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{border:1px solid var(--line);background:#2e2450;color:var(--ink);border-radius:999px;padding:9px 14px;font:500 14px Inter;min-height:40px;cursor:pointer}
 .chip.on{background:var(--acc);border-color:var(--acc);color:#2a1206}
 .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
-input[type=range]{width:100%;accent-color:var(--acc);height:36px}
 .hint{color:var(--mute);font-size:13px;margin:6px 0 0}
-.seg{display:flex;gap:6px}.seg button{flex:1}
+.seg{display:flex;gap:6px;flex-wrap:wrap}.seg button{flex:1}
+.f{margin-top:14px}
 .btn{width:100%;min-height:56px;border:0;border-radius:16px;background:linear-gradient(135deg,var(--acc),#ff5f8f);color:#fff;font:600 18px Inter;cursor:pointer;box-shadow:0 8px 24px #ff5f8f40}
 .btn:disabled{opacity:.5}
-.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);border-radius:12px;min-height:44px;padding:0 14px;font:500 15px Inter;cursor:pointer}
+.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);border-radius:12px;min-height:40px;padding:0 12px;font:500 14px Inter;cursor:pointer;text-decoration:none;display:inline-grid;place-items:center}
 details summary{cursor:pointer;font-weight:600;min-height:32px}
-details .f{margin-top:12px}
-#status{display:none}
-.bar{height:10px;background:#1f1838;border-radius:99px;overflow:hidden;margin:10px 0}
-.bar i{display:block;height:100%;width:5%;background:linear-gradient(90deg,var(--acc2),var(--acc));transition:width .6s}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.res{background:#1f1838;border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+.scene{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:start;padding:10px;border:1px solid var(--line);border-radius:14px;background:var(--field);margin-top:8px}
+.scene input[type=checkbox]{width:22px;height:22px;margin:2px 0 0;accent-color:var(--acc)}
+.scene b{font-size:15px}
+.scene textarea{grid-column:2;min-height:56px;font-size:14px;padding:8px 10px}
+.scene.off{opacity:.5}
+.bar{height:10px;background:var(--field);border-radius:99px;overflow:hidden;margin:10px 0}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc2),var(--acc));transition:width .6s}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:12px}
+.res{background:var(--field);border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+.res .ph{display:grid;place-items:center;color:var(--mute);font-size:14px;text-align:center;padding:12px;background:repeating-linear-gradient(45deg,#231b3f 0 12px,#1f1838 12px 24px)}
 .res img{width:100%;display:block}
-.res .a{display:flex;gap:6px;padding:8px}
-.res .a>*{flex:1;font-size:13px;padding:0 6px;display:grid;place-items:center;text-decoration:none}
+.res .a{display:flex;gap:6px;padding:8px;flex-wrap:wrap}
+.res .a>*{flex:1}
+.res .cap{padding:0 10px 10px;margin:0;font-size:13px;color:var(--mute)}
 .err{color:var(--bad)}.okc{color:var(--ok)}
 .empty{color:var(--mute);text-align:center;padding:20px 0;font-size:15px}
+.warn{background:#3a2a1c;border:1px solid #6b4a2a;border-radius:12px;padding:10px 12px;font-size:13px;color:#ffd9b8;margin-top:10px}
 @media(prefers-reduced-motion:reduce){.bar i{transition:none}}
 </style>
 </head>
 <body>
 <main>
 <h1>Estudio de Imágenes</h1>
-<p class="sub">Sube una foto, describe el cambio y genera. Es gratis y sin límite: funciona con la red de voluntarios AI Horde.</p>
+<p class="sub">Sube una foto de tu modelo y genera una serie de escenas: misma cara y mismo cuerpo, con otra ropa y otro lugar, y espacio libre para tu texto.</p>
 
 <section class="card">
-  <label class="t">1. Imagen base</label>
+  <span class="t">1. Foto de la modelo</span>
   <div class="drop" id="drop" role="button" tabindex="0"><span><b>Toca para elegir una foto</b>de tu galería o cámara</span></div>
   <input type="file" id="file" accept="image/*" hidden>
 </section>
 
 <section class="card">
-  <label class="t" for="prompt">2. ¿Qué quieres crear?</label>
-  <textarea id="prompt" placeholder="Ej.: watercolor painting, soft pastel colors, flowers in the background"></textarea>
-  <p class="hint">Consejo: escribe en inglés y salen mejores resultados. También puedes tocar estilos:</p>
-  <div class="chips" id="chips"></div>
+  <span class="t">2. Motor de IA</span>
+  <div class="seg" id="prov"><button class="chip on" data-p="gemini">Gemini (mejor rostro)</button><button class="chip" data-p="horde">AI Horde (gratis)</button></div>
+  <div id="gemBox" class="f">
+    <label class="t" for="gkey">Clave de API de Google Gemini</label>
+    <input type="password" id="gkey" placeholder="AIza..." autocomplete="off">
+    <p class="hint">Créala en <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="color:var(--acc2)">aistudio.google.com/apikey</a>. Se guarda solo en este navegador. Generar imágenes con Gemini puede tener costo según tu cuenta de Google.</p>
+    <label class="t f" for="gmodel">Modelo</label>
+    <select id="gmodel">
+      <option value="gemini-2.5-flash-image">Nano Banana · gemini-2.5-flash-image (rápido)</option>
+      <option value="gemini-3-pro-image-preview">Nano Banana Pro · gemini-3-pro-image-preview (más calidad)</option>
+    </select>
+  </div>
+  <div id="hordeBox" class="f" hidden>
+    <label class="t" for="hkey">Clave de AI Horde (opcional)</label>
+    <input type="password" id="hkey" placeholder="0000000000" autocomplete="off">
+    <p class="hint">Gratis en <a href="https://aihorde.net/register" target="_blank" rel="noopener" style="color:var(--acc2)">aihorde.net/register</a>. Con clave la cola va más rápido.</p>
+    <div class="warn">AI Horde es gratis pero no conserva bien el rostro: cambia la ropa y el fondo a partir de tu foto, con resultados variables. Para que respete cara y cuerpo usa Gemini.</div>
+  </div>
 </section>
 
 <section class="card">
-  <div class="row"><label class="t" for="den" style="margin:0">3. Cuánto cambiar</label><b id="denv">Medio</b></div>
-  <input type="range" id="den" min="0.25" max="0.9" step="0.05" value="0.55">
-  <p class="hint">Poco = se parece mucho a la foto original. Mucho = más creativo.</p>
-  <div style="margin-top:14px"><label class="t">Cantidad de imágenes</label>
-  <div class="seg" id="qty"><button class="chip" data-n="1">1</button><button class="chip on" data-n="2">2</button><button class="chip" data-n="3">3</button><button class="chip" data-n="4">4</button></div></div>
-  <details style="margin-top:14px"><summary>Ajustes avanzados</summary>
-    <div class="f"><label class="t" for="model">Modelo</label><select id="model"><option>Cargando modelos…</option></select><p class="hint">Entre más voluntarios tenga un modelo, más rápido sale.</p></div>
-    <div class="f"><label class="t" for="neg">Evitar (negativo)</label><input type="text" id="neg" value="blurry, deformed, ugly, bad anatomy, watermark, text"></div>
-    <div class="f"><label class="t">Tamaño</label><div class="seg" id="size"><button class="chip on" data-s="512">Normal</button><button class="chip" data-s="768">Grande</button></div><p class="hint">Grande tarda más y a veces requiere clave.</p></div>
-    <div class="f"><label class="t" for="seed">Semilla (opcional)</label><input type="text" id="seed" inputmode="numeric" placeholder="Vacío = al azar"><p class="hint">Repite la misma semilla para variar solo un detalle.</p></div>
-    <div class="f"><label class="t" for="key">Clave personal de AI Horde (opcional)</label><input type="password" id="key" placeholder="0000000000"><p class="hint">Gratis en <a href="https://aihorde.net/register" style="color:var(--acc2)">aihorde.net/register</a>. Con clave la cola va más rápido.</p></div>
+  <div class="row"><span class="t" style="margin:0">3. Escenas</span><span class="hint" id="count" style="margin:0"></span></div>
+  <p class="hint">Marca las que quieres. Puedes editar cada descripción (ropa y lugar).</p>
+  <div class="row f" style="margin-top:8px;justify-content:flex-start;gap:8px"><button class="ghost" id="all">Todas</button><button class="ghost" id="none">Ninguna</button><button class="ghost" id="addScene">+ Escena propia</button></div>
+  <div id="scenes"></div>
+</section>
+
+<section class="card">
+  <span class="t">4. Composición</span>
+  <span class="hint" style="display:block;margin:0 0 6px">Dónde va la modelo (el otro lado queda libre para texto)</span>
+  <div class="seg" id="side"><button class="chip" data-v="left">Izquierda</button><button class="chip" data-v="right">Derecha</button><button class="chip on" data-v="alt">Alternar</button></div>
+  <span class="hint" style="display:block;margin:14px 0 6px">Formato</span>
+  <div class="seg" id="ratio"><button class="chip on" data-v="16:9">16:9 Banner</button><button class="chip" data-v="4:5">4:5 Post</button><button class="chip" data-v="9:16">9:16 Historia</button><button class="chip" data-v="1:1">1:1</button></div>
+  <span class="hint" style="display:block;margin:14px 0 6px">Estilo</span>
+  <div class="seg" id="style"><button class="chip on" data-v="keep">Igual que la foto</button><button class="chip" data-v="photo">Foto realista</button></div>
+  <details class="f"><summary>Instrucción extra (opcional)</summary>
+    <textarea id="extra" class="f" placeholder="Ej.: siempre con los aretes de perla; colores cálidos"></textarea>
   </details>
 </section>
 
-<button class="btn" id="go">Generar imágenes</button>
+<button class="btn" id="go">Generar escenas</button>
 
-<section class="card" id="status" style="margin-top:14px">
-  <div class="row"><b id="stxt">Enviando…</b><button class="ghost" id="cancel">Cancelar</button></div>
+<section class="card" id="status" style="margin-top:14px" hidden>
+  <div class="row"><b id="stxt">Preparando…</b><button class="ghost" id="cancel">Detener</button></div>
   <div class="bar"><i id="sbar"></i></div>
   <p class="hint" id="sdet"></p>
 </section>
 
 <section class="card" style="margin-top:14px">
-  <div class="row"><label class="t" style="margin:0">Resultados</label><button class="ghost" id="clear">Limpiar</button></div>
-  <p class="hint">Mantén presionada una imagen para guardarla, o toca "Abrir".</p>
+  <div class="row"><span class="t" style="margin:0">Resultados</span><button class="ghost" id="clear">Limpiar</button></div>
   <div class="grid" id="out" style="margin-top:10px"></div>
-  <p class="empty" id="empty">Aquí aparecerán tus imágenes.</p>
+  <p class="empty" id="empty">Aquí aparecerán tus escenas.</p>
 </section>
 </main>
 
 <script>
 {
-const API='https://aihorde.net/api/v2', AGENT='estudio-imagenes:1.0:anon';
-const STYLES=[['Acuarela','watercolor painting, soft edges'],['Óleo','oil painting, rich brush strokes'],['Anime','anime style, vibrant colors, clean lines'],['Caricatura 3D','3d cartoon render, pixar style lighting'],['Foto real','photorealistic, professional photography, sharp focus'],['Boceto','pencil sketch, hand drawn'],['Vintage','vintage photo, film grain, warm tones'],['Fantasía','fantasy art, magical atmosphere, glowing light'],['Minimalista','minimalist, flat colors, simple shapes'],['Cómic','comic book style, bold ink outlines']];
-const PREF=['Deliberate','Dreamshaper','AlbedoBase XL (SDXL)','Realistic Vision','stable_diffusion'];
+const SCENES=[
+ ['Navidad','cozy red knit sweater dress and cream tights; inside a warm living room with a decorated Christmas tree, golden fairy lights, wrapped gifts and a fireplace'],
+ ['Lluvia con sombrilla','beige trench coat and ankle boots, holding an open transparent umbrella; rainy city street at dusk, wet pavement with reflections, soft rain'],
+ ['Playa al atardecer','flowy white linen sundress and a straw hat; sandy beach at golden-hour sunset, gentle waves'],
+ ['Café en París','striped boat-neck top, black midi skirt and a beret; outdoor Parisian café terrace with small round tables'],
+ ['Parque en otoño','camel wool coat with a plaid scarf; park path covered in orange and yellow autumn leaves'],
+ ['Nieve','white puffer jacket, knit beanie and mittens; snowy street with falling snowflakes'],
+ ['Noche de gala','elegant black satin evening gown; grand ballroom with crystal chandeliers'],
+ ['Oficina','tailored navy blazer suit with a white blouse; bright modern office with large windows'],
+ ['Jardín en primavera','floral midi dress with puff sleeves; garden full of blooming pink and white flowers'],
+ ['Ciudad de noche','black leather jacket, white tee and jeans; city street at night with glowing neon signs and bokeh lights'],
+];
+const API='https://aihorde.net/api/v2',AGENT='estudio-imagenes:2.0:anon';
+const GEM='https://generativelanguage.googleapis.com/v1beta/models/';
 const $=id=>document.getElementById(id);
-let src=null, n=2, size=512, job=null, timer=null;
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const opt={prov:'gemini',side:'alt',ratio:'16:9',style:'keep'};
+let src=null,run=null;
 
-$('chips').innerHTML=STYLES.map((s,i)=>`<button class="chip" data-i="${i}">${s[0]}</button>`).join('');
-$('chips').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;b.classList.toggle('on')};
-const seg=(id,fn)=>$(id).onclick=e=>{const b=e.target.closest('.chip');if(!b)return;[...$(id).children].forEach(c=>c.classList.toggle('on',c===b));fn(b)};
-seg('qty',b=>n=+b.dataset.n);seg('size',b=>size=+b.dataset.s);
-const denLbl=v=>v<.4?'Poco':v<.65?'Medio':'Mucho';
-$('den').oninput=()=>$('denv').textContent=denLbl(+$('den').value);
-$('key').value=store.get('hordeKey')||'';
-$('key').onchange=()=>store.set('hordeKey',$('key').value.trim());
-$('prompt').value=store.get('lastPrompt')||'';
+/* ---------- UI ---------- */
+function seg(id,k,attr){$(id).onclick=e=>{const b=e.target.closest('.chip');if(!b)return;[...$(id).children].forEach(c=>c.classList.toggle('on',c===b));opt[k]=b.dataset[attr];if(k==='prov')provUI()}}
+seg('prov','prov','p');seg('side','side','v');seg('ratio','ratio','v');seg('style','style','v');
+function provUI(){$('gemBox').hidden=opt.prov!=='gemini';$('hordeBox').hidden=opt.prov!=='horde'}
+for(const id of['gkey','hkey','gmodel']){$(id).value=store.get(id)||$(id).value;$(id).onchange=()=>store.set(id,$(id).value.trim())}
+
+function sceneRow(title,desc,on=true){
+  const d=document.createElement('label');d.className='scene'+(on?'':' off');
+  d.innerHTML=`<input type="checkbox"${on?' checked':''}><b>${esc(title)}</b><textarea aria-label="Descripción: ${esc(title)}">${esc(desc)}</textarea>`;
+  d.querySelector('input').onchange=e=>{d.classList.toggle('off',!e.target.checked);upd()};
+  $('scenes').appendChild(d);
+}
+SCENES.forEach(s=>sceneRow(s[0],s[1]));
+const rows=()=>[...$('scenes').children];
+function upd(){const n=rows().filter(r=>r.querySelector('input').checked).length;$('count').textContent=`${n} seleccionada${n===1?'':'s'}`;$('go').textContent=n?`Generar ${n} escena${n===1?'':'s'}`:'Generar escenas'}
+const setAll=v=>{rows().forEach(r=>{r.querySelector('input').checked=v;r.classList.toggle('off',!v)});upd()};
+$('all').onclick=()=>setAll(true);$('none').onclick=()=>setAll(false);
+$('addScene').onclick=()=>{sceneRow('Escena propia','',true);const t=rows().at(-1).querySelector('textarea');t.placeholder='Ej.: vestido amarillo; mercado de flores';t.focus();upd()};
+upd();
 
 $('drop').onclick=()=>$('file').click();
-$('drop').onkeydown=e=>{if(e.key==='Enter'||e.key===' ')$('file').click()};
-$('file').onchange=()=>{const f=$('file').files[0];if(f)loadImg(f)};
+$('drop').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('file').click()}};
+$('file').onchange=()=>{const f=$('file').files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{src=im;$('drop').innerHTML='';const v=new Image();v.src=r.result;v.alt='Foto de la modelo';$('drop').appendChild(v)};im.src=r.result};r.readAsDataURL(f)};
 
-function loadImg(f){
-  const r=new FileReader();
-  r.onload=()=>{const im=new Image();im.onload=()=>{src=im;$('drop').innerHTML=`<img src="${r.result}" alt="Imagen base">`};im.src=r.result};
-  r.readAsDataURL(f);
+/* ---------- prompts ---------- */
+const sideFor=i=>opt.side==='alt'?(i%2?'right':'left'):opt.side;
+function gemPrompt(desc,side){
+  const other=side==='left'?'right':'left';
+  const style=opt.style==='keep'
+    ?'Keep exactly the same art style, medium and rendering as the reference image.'
+    :'Render it as a high-quality photorealistic photograph with natural light.';
+  const extra=$('extra').value.trim();
+  return `Create a new image of the SAME woman shown in the reference image.
+Keep her identity identical: same face, facial features, eyes, nose, lips, skin tone, freckles/blush, hair color and hairstyle, body shape and proportions. Do not change her face.
+Only change her outfit and the location. Outfit and scene: ${desc}.
+Composition: she stands on the ${side} third of the frame (from about the knees or waist up), facing slightly toward the center. The ${other} half of the image must be calm, uncluttered background with empty negative space reserved for adding text later.
+${style}
+Do not add any text, letters, logos or watermarks.${extra?'\nAdditional instructions: '+extra:''}`;
 }
-function useAsBase(url){
-  const im=new Image();im.crossOrigin='anonymous';
-  im.onload=()=>{src=im;$('drop').innerHTML='';$('drop').appendChild(im.cloneNode());window.scrollTo({top:0,behavior:'smooth'})};
-  im.onerror=()=>say('No pude reutilizar esa imagen. Guárdala y súbela de nuevo.',true);
-  im.src=url;
+function hordePrompt(desc){
+  const style=opt.style==='keep'?'watercolor and ink illustration, soft colors':'photorealistic, professional photography, sharp focus';
+  return `${desc}, same woman, same face, ${style}, empty background space for text ### blurry, deformed face, extra limbs, bad anatomy, text, watermark, logo`;
 }
-function encode(){
-  const w0=src.naturalWidth,h0=src.naturalHeight,k=size/Math.max(w0,h0);
-  const r64=x=>Math.max(256,Math.round(x*k/64)*64);
-  const W=r64(w0),H=r64(h0),c=document.createElement('canvas');c.width=W;c.height=H;
-  c.getContext('2d').drawImage(src,0,0,W,H);
-  let d=c.toDataURL('image/webp',.9);if(!d.startsWith('data:image/webp'))d=c.toDataURL('image/jpeg',.92);
-  return{W,H,b64:d.split(',')[1]};
-}
-const key=()=>$('key').value.trim()||'0000000000';
-const hdr=()=>({'Content-Type':'application/json','apikey':key(),'Client-Agent':AGENT});
 
-async function loadModels(){
-  try{
-    const r=await fetch(API+'/status/models?type=image&model_state=known');const list=(await r.json()).filter(m=>m.count>0).sort((a,b)=>b.count-a.count).slice(0,40);
-    const def=PREF.find(p=>list.some(m=>m.name===p))||list[0]?.name;
-    $('model').innerHTML=list.map(m=>`<option value="${m.name}"${m.name===(store.get('model')||def)?' selected':''}>${m.name} · ${m.count} voluntarios</option>`).join('');
-  }catch(e){$('model').innerHTML='<option value="">Automático</option>'}
+/* ---------- image prep ---------- */
+function refJpeg(max=1280){
+  const k=Math.min(1,max/Math.max(src.naturalWidth,src.naturalHeight));
+  const c=document.createElement('canvas');c.width=Math.round(src.naturalWidth*k);c.height=Math.round(src.naturalHeight*k);
+  c.getContext('2d').drawImage(src,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.92).split(',')[1];
 }
-$('model').onchange=()=>store.set('model',$('model').value);
+const HSIZE={'16:9':[704,384],'4:5':[448,576],'9:16':[384,704],'1:1':[512,512]};
+function hordeCanvas(side){ // sitúa a la modelo a un lado del lienzo para que img2img respete la composición
+  const[W,H]=HSIZE[opt.ratio],c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');
+  const t=document.createElement('canvas');t.width=t.height=1;const tg=t.getContext('2d');tg.drawImage(src,0,0,src.naturalWidth,src.naturalHeight*.15,0,0,1,1);
+  const p=tg.getImageData(0,0,1,1).data;g.fillStyle=`rgb(${p[0]},${p[1]},${p[2]})`;g.fillRect(0,0,W,H);
+  const s=Math.min(H/src.naturalHeight,W*.55/src.naturalWidth),w=src.naturalWidth*s,h=src.naturalHeight*s;
+  g.drawImage(src,side==='left'?W*.04:W-w-W*.04,H-h,w,h);
+  return{W,H,b64:c.toDataURL('image/webp',.9).split(',')[1]};
+}
 
-function say(t,bad){$('status').style.display='block';$('stxt').textContent=t;$('stxt').className=bad?'err':'';}
-function busy(on){$('go').disabled=on;$('go').textContent=on?'Generando…':'Generar imágenes';$('cancel').style.display=on?'':'none'}
+/* ---------- providers ---------- */
+async function gemini(desc,side,signal){
+  const key=$('gkey').value.trim();if(!key)throw new Error('Falta la clave de Gemini.');
+  const body={contents:[{parts:[{inline_data:{mime_type:'image/jpeg',data:refB64}},{text:gemPrompt(desc,side)}]}],
+    generationConfig:{responseModalities:['IMAGE'],imageConfig:{aspectRatio:opt.ratio}}};
+  const r=await fetch(GEM+encodeURIComponent($('gmodel').value)+':generateContent',{method:'POST',signal,headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify(body)});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok){const m=j.error?.message||('Error '+r.status);
+    if(r.status===400&&/API key/i.test(m))throw new Error('La clave de Gemini no es válida.');
+    if(r.status===429)throw Object.assign(new Error('Límite de uso alcanzado; reintentando…'),{retry:true});
+    if(r.status>=500)throw Object.assign(new Error('Gemini está saturado; reintentando…'),{retry:true});
+    throw new Error(m)}
+  const part=(j.candidates?.[0]?.content?.parts||[]).find(p=>p.inlineData||p.inline_data);
+  if(!part){const why=j.promptFeedback?.blockReason||j.candidates?.[0]?.finishReason||'';
+    throw new Error('No devolvió imagen'+(why?` (${why})`:'')+'. Prueba reintentar o cambia la descripción.')}
+  const d=part.inlineData||part.inline_data;return`data:${d.mimeType||d.mime_type||'image/png'};base64,${d.data}`;
+}
+async function horde(desc,side,signal,onMsg){
+  const{W,H,b64}=hordeCanvas(side);const key=$('hkey').value.trim()||'0000000000';
+  const body={prompt:hordePrompt(desc),params:{sampler_name:'k_euler_a',cfg_scale:7,denoising_strength:.62,width:W,height:H,steps:25,n:1,karras:true},
+    nsfw:false,censor_nsfw:true,source_image:b64,source_processing:'img2img',r2:true,shared:false,slow_workers:true};
+  const r=await fetch(API+'/generate/async',{method:'POST',signal,headers:{'Content-Type':'application/json',apikey:key,'Client-Agent':AGENT},body:JSON.stringify(body)});
+  const j=await r.json();if(!r.ok||!j.id)throw new Error(/kudos/i.test(j.message||'')?'Esta petición pide clave de AI Horde. Usa formato 1:1 o crea tu clave gratis.':(j.message||'Error '+r.status));
+  const id=j.id;
+  try{
+    for(;;){
+      await sleep(4000,signal);
+      const c=await(await fetch(`${API}/generate/check/${id}`,{signal,headers:{'Client-Agent':AGENT}})).json();
+      if(c.faulted)throw new Error('La generación falló.');
+      if(c.is_possible===false)throw new Error('Ningún voluntario puede hacerla ahora.');
+      if(c.done)break;
+      onMsg(c.processing?'Pintando…':`En fila${c.queue_position?' · puesto '+c.queue_position:''}${c.wait_time?' · ~'+c.wait_time+' s':''}`);
+    }
+    const s=await(await fetch(`${API}/generate/status/${id}`,{signal,headers:{'Client-Agent':AGENT}})).json();
+    const g=(s.generations||[]).find(x=>!x.censored);if(!g)throw new Error('Bloqueada por el filtro. Cambia la descripción.');
+    return g.img;
+  }catch(e){if(e.name==='AbortError')fetch(`${API}/generate/status/${id}`,{method:'DELETE',headers:{'Client-Agent':AGENT}}).catch(()=>{});throw e}
+}
+const sleep=(ms,signal)=>new Promise((res,rej)=>{const t=setTimeout(res,ms);signal?.addEventListener('abort',()=>{clearTimeout(t);rej(new DOMException('','AbortError'))},{once:true})});
 
-$('go').onclick=async()=>{
-  if(!src)return say('Primero elige una imagen base.',true);
-  const extra=[...$('chips').querySelectorAll('.on')].map(b=>STYLES[b.dataset.i][1]);
-  const p=[$('prompt').value.trim(),...extra].filter(Boolean).join(', ');
-  if(!p)return say('Escribe qué quieres o elige un estilo.',true);
-  store.set('lastPrompt',$('prompt').value);
-  let enc;try{enc=encode()}catch(e){return say('No pude usar esa imagen como base. Guárdala en el teléfono y súbela con "Toca para elegir".',true)}
-  const {W,H,b64}=enc,neg=$('neg').value.trim(),m=$('model').value;
-  const body={prompt:neg?`${p} ### ${neg}`:p,params:{sampler_name:'k_euler_a',cfg_scale:7,denoising_strength:+$('den').value,width:W,height:H,steps:25,n,karras:true},
-    nsfw:false,censor_nsfw:true,source_image:b64,source_processing:'img2img',r2:true,shared:false,trusted_workers:false,slow_workers:true};
-  if(m)body.models=[m];
-  if($('seed').value.trim())body.params.seed=$('seed').value.trim();
-  busy(true);say('Enviando a la red…');$('sbar').style.width='5%';$('sdet').textContent='';
-  try{
-    const r=await fetch(API+'/generate/async',{method:'POST',headers:hdr(),body:JSON.stringify(body)});
-    const j=await r.json();
-    if(!r.ok||!j.id)throw new Error(j.message||('Error '+r.status));
-    job=j.id;poll(Date.now());
-  }catch(e){busy(false);say(fix(e.message),true)}
-};
-function fix(msg){
-  if(/kudos/i.test(msg))return 'Esta petición pide una clave gratis. Usa tamaño Normal o crea tu clave en aihorde.net/register. ('+msg+')';
-  if(/fetch|network/i.test(msg))return 'Sin conexión con AI Horde. Revisa tu internet e inténtalo otra vez.';
-  return msg;
-}
-async function poll(t0){
-  try{
-    const c=await (await fetch(`${API}/generate/check/${job}`,{headers:{'Client-Agent':AGENT}})).json();
-    if(c.faulted)throw new Error('La generación falló. Prueba otro modelo.');
-    if(c.is_possible===false)throw new Error('Ningún voluntario puede hacer esto ahora. Prueba otro modelo o tamaño Normal.');
-    if(c.done)return finish();
-    const wait=c.wait_time||0,el=(Date.now()-t0)/1000;
-    $('sbar').style.width=Math.min(95,5+el/(el+wait+1)*90)+'%';
-    say(c.processing?'Pintando tus imágenes…':'En la fila de espera…');
-    $('sdet').textContent=(c.queue_position?`Puesto en la fila: ${c.queue_position}. `:'')+(wait?`Faltan unos ${Math.ceil(wait)} s.`:'')+` Listas: ${c.finished||0} de ${n}.`;
-    timer=setTimeout(()=>poll(t0),4000);
-  }catch(e){busy(false);say(e.message,true);job=null}
-}
-async function finish(){
-  try{
-    const s=await (await fetch(`${API}/generate/status/${job}`,{headers:{'Client-Agent':AGENT}})).json();
-    const g=(s.generations||[]).filter(x=>!x.censored);
-    $('sbar').style.width='100%';
-    say(g.length?`¡Listo! ${g.length} imagen${g.length>1?'es':''}.`:'Las imágenes fueron bloqueadas por el filtro. Cambia la descripción.',!g.length);
-    $('stxt').className=g.length?'okc':'err';
-    g.forEach(x=>add(x.img,x.seed,x.model));
-  }catch(e){say('No pude traer los resultados: '+e.message,true)}
-  job=null;busy(false);
-}
-function add(url,seed,model){
+/* ---------- run ---------- */
+let refB64='';
+function say(t,cls){$('status').hidden=false;$('stxt').textContent=t;$('stxt').className=cls||''}
+function card(title){
   $('empty').style.display='none';
   const d=document.createElement('div');d.className='res';
-  d.innerHTML=`<img src="${url}" alt="Resultado" loading="lazy"><div class="a"><a class="ghost" href="${url}" target="_blank" rel="noopener">Abrir</a><button class="ghost" data-u="${url}">Usar de base</button></div><p class="hint" style="padding:0 8px 8px;margin:0">Semilla ${seed} · ${model}</p>`;
-  d.querySelector('button').onclick=()=>useAsBase(url);
-  d.querySelector('.hint').onclick=()=>{$('seed').value=seed};
-  $('out').prepend(d);
+  const[aw,ah]=opt.ratio.split(':');
+  d.innerHTML=`<div class="ph" style="aspect-ratio:${aw}/${ah}">En espera…</div><div class="a" hidden></div><p class="cap">${esc(title)}</p>`;
+  $('out').appendChild(d);return d;
 }
-$('cancel').onclick=async()=>{
-  clearTimeout(timer);
-  if(job){try{const s=await (await fetch(`${API}/generate/status/${job}`,{method:'DELETE',headers:{'Client-Agent':AGENT}})).json();(s.generations||[]).forEach(x=>add(x.img,x.seed,x.model))}catch(e){}}
-  job=null;busy(false);say('Cancelado.');
+async function job(t,signal){
+  const{el,title,desc,side}=t,ph=el.querySelector('.ph');
+  ph.textContent='Generando…';ph.className='ph';
+  for(let attempt=0;;attempt++){
+    try{
+      const url=opt.prov==='gemini'?await gemini(desc,side,signal):await horde(desc,side,signal,m=>ph.textContent=m);
+      const img=new Image();img.src=url;img.alt=title;ph.replaceWith(img);
+      const a=el.querySelector('.a');a.hidden=false;
+      const fname=`escena-${title.toLowerCase().normalize('NFD').replace(/[^\w]+/g,'-').replace(/^-|-$/g,'')}.png`;
+      a.innerHTML=url.startsWith('data:')?`<a class="ghost" href="${url}" download="${fname}">Descargar</a>`:`<a class="ghost" href="${esc(url)}" target="_blank" rel="noopener">Abrir</a>`;
+      const again=document.createElement('button');again.className='ghost';again.textContent='Otra versión';
+      again.onclick=()=>{const n=card(title);startRun([{el:n,title,desc,side}],false)};a.appendChild(again);
+      return true;
+    }catch(e){
+      if(e.name==='AbortError'){ph.textContent='Detenido';return false}
+      if(e.retry&&attempt<3){ph.textContent=e.message;await sleep(8000*(attempt+1),signal).catch(()=>{});if(signal.aborted){ph.textContent='Detenido';return false}continue}
+      ph.innerHTML=`<span><span class="err">${esc(e.message)}</span><br><button class="ghost" style="margin-top:8px">Reintentar</button></span>`;
+      ph.querySelector('button').onclick=()=>{el.remove();const n=card(title);startRun([{el:n,title,desc,side}],false)};
+      return false;
+    }
+  }
+}
+let active=0;
+async function startRun(tasks,fresh=true){
+  const ctl=new AbortController(),mine={ctl};if(fresh||!run)run=mine;
+  refB64=refJpeg();active++;
+  $('go').disabled=true;$('cancel').hidden=false;
+  let done=0,ok=0,i=0;const total=tasks.length;
+  const tick=()=>{$('sbar').style.width=(done/total*100)+'%';$('sdet').textContent=`${done} de ${total} listas${ok<done?` · ${done-ok} con error`:''}`};
+  say(`Generando ${total} escena${total>1?'s':''}…`);tick();
+  const worker=async()=>{while(i<total&&!ctl.signal.aborted){const t=tasks[i++];if(await job(t,ctl.signal))ok++;done++;tick()}};
+  await Promise.all(Array.from({length:Math.min(2,total)},worker));
+  if(run===mine)run=null;
+  if(--active===0){$('go').disabled=false;$('cancel').hidden=true}
+  if(ctl.signal.aborted){tasks.slice(i).forEach(t=>{const ph=t.el.querySelector('.ph');if(ph)ph.textContent='Detenido'});say('Detenido.')}
+  else say(ok===total?`¡Listo! ${ok} escena${ok>1?'s':''}.`:`Terminado: ${ok} de ${total} bien. Usa "Reintentar" en las que fallaron.`,ok===total?'okc':'err');
+}
+$('go').onclick=()=>{
+  if(!src)return say('Primero elige la foto de la modelo.','err');
+  if(opt.prov==='gemini'&&!$('gkey').value.trim()){$('gkey').focus();return say('Pega tu clave de Gemini en el paso 2.','err')}
+  const sel=rows().filter(r=>r.querySelector('input').checked).map(r=>({title:r.querySelector('b').textContent,desc:r.querySelector('textarea').value.trim()})).filter(s=>s.desc);
+  if(!sel.length)return say('Marca al menos una escena con descripción.','err');
+  const tasks=sel.map((s,i)=>({...s,side:sideFor(i),el:card(s.title)}));
+  tasks[0].el.scrollIntoView({behavior:'smooth',block:'nearest'});
+  startRun(tasks);
 };
+$('cancel').onclick=()=>{run?.ctl.abort();run=null};
 $('clear').onclick=()=>{$('out').innerHTML='';$('empty').style.display=''};
-busy(false);$('cancel').style.display='none';loadModels();
+$('cancel').hidden=true;provUI();
 }
 </script>
 </body>
