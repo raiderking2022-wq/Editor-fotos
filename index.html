@@ -67,7 +67,21 @@ details summary{cursor:pointer;font-weight:600;min-height:32px}
 
 <section class="card">
   <span class="t">2. Motor de IA</span>
-  <div class="seg" id="prov"><button class="chip on" data-p="gemini">Gemini (mejor rostro)</button><button class="chip" data-p="horde">AI Horde (gratis)</button></div>
+  <div class="seg" id="prov"><button class="chip on" data-p="hf">Hugging Face · gratis</button><button class="chip" data-p="copy">Copiar prompts · gratis</button><button class="chip" data-p="horde">AI Horde · gratis</button><button class="chip" data-p="gemini">Gemini · de pago</button></div>
+  <div id="hfBox" class="f">
+    <p class="hint" style="margin-top:0">Usa modelos de edición que <b>respetan el rostro</b> (FLUX Kontext / Qwen Image Edit) en los servidores gratuitos de Hugging Face. Hay una cuota diaria gratis de GPU: alcanza para unas pocas imágenes al día; se renueva cada 24 h.</p>
+    <label class="t f" for="hfspace">Modelo</label>
+    <select id="hfspace">
+      <option value="black-forest-labs/FLUX.1-Kontext-Dev">FLUX.1 Kontext (recomendado)</option>
+      <option value="Qwen/Qwen-Image-Edit">Qwen Image Edit</option>
+    </select>
+    <label class="t f" for="hftoken">Token de Hugging Face (gratis, muy recomendado)</label>
+    <input type="password" id="hftoken" placeholder="hf_..." autocomplete="off">
+    <p class="hint">Sin token la cuota es mínima. Crea una cuenta gratis en <a href="https://huggingface.co/join" target="_blank" rel="noopener" style="color:var(--acc2)">huggingface.co/join</a> y luego un token de tipo "Read" en <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noopener" style="color:var(--acc2)">huggingface.co/settings/tokens</a>. Se guarda solo en este navegador.</p>
+  </div>
+  <div id="copyBox" class="f" hidden>
+    <p class="hint" style="margin-top:0">No genera aquí: te prepara un prompt por escena para pegarlo junto con tu foto en herramientas con uso gratis diario, como <a href="https://gemini.google.com" target="_blank" rel="noopener" style="color:var(--acc2)">la app de Gemini</a> o <a href="https://dreamina.capcut.com" target="_blank" rel="noopener" style="color:var(--acc2)">Dreamina</a>. Respeta muy bien el rostro.</p>
+  </div>
   <div id="gemBox" class="f">
     <label class="t" for="gkey">Clave de API de Google Gemini</label>
     <input type="password" id="gkey" placeholder="AIza..." autocomplete="off">
@@ -140,14 +154,14 @@ const GEM='https://generativelanguage.googleapis.com/v1beta/models/';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
-const opt={prov:'gemini',side:'alt',ratio:'16:9',style:'keep'};
+const opt={prov:'hf',side:'alt',ratio:'16:9',style:'keep'};
 let src=null,run=null;
 
 /* ---------- UI ---------- */
 function seg(id,k,attr){$(id).onclick=e=>{const b=e.target.closest('.chip');if(!b)return;[...$(id).children].forEach(c=>c.classList.toggle('on',c===b));opt[k]=b.dataset[attr];if(k==='prov')provUI()}}
 seg('prov','prov','p');seg('side','side','v');seg('ratio','ratio','v');seg('style','style','v');
-function provUI(){$('gemBox').hidden=opt.prov!=='gemini';$('hordeBox').hidden=opt.prov!=='horde'}
-for(const id of['gkey','hkey','gmodel']){$(id).value=store.get(id)||$(id).value;$(id).onchange=()=>store.set(id,$(id).value.trim())}
+function provUI(){for(const[b,p]of[['gemBox','gemini'],['hordeBox','horde'],['hfBox','hf'],['copyBox','copy']])$(b).hidden=opt.prov!==p;upd()}
+for(const id of['gkey','hkey','gmodel','hftoken','hfspace']){$(id).value=store.get(id)||$(id).value;$(id).onchange=()=>store.set(id,$(id).value.trim())}
 
 function sceneRow(title,desc,on=true){
   const d=document.createElement('label');d.className='scene'+(on?'':' off');
@@ -157,7 +171,7 @@ function sceneRow(title,desc,on=true){
 }
 SCENES.forEach(s=>sceneRow(s[0],s[1]));
 const rows=()=>[...$('scenes').children];
-function upd(){const n=rows().filter(r=>r.querySelector('input').checked).length;$('count').textContent=`${n} seleccionada${n===1?'':'s'}`;$('go').textContent=n?`Generar ${n} escena${n===1?'':'s'}`:'Generar escenas'}
+function upd(){const n=rows().filter(r=>r.querySelector('input').checked).length;$('count').textContent=`${n} seleccionada${n===1?'':'s'}`;const v=opt.prov==='copy'?'Preparar':'Generar';$('go').textContent=n?`${v} ${n} escena${n===1?'':'s'}`:`${v} escenas`}
 const setAll=v=>{rows().forEach(r=>{r.querySelector('input').checked=v;r.classList.toggle('off',!v)});upd()};
 $('all').onclick=()=>setAll(true);$('none').onclick=()=>setAll(false);
 $('addScene').onclick=()=>{sceneRow('Escena propia','',true);const t=rows().at(-1).querySelector('textarea');t.placeholder='Ej.: vestido amarillo; mercado de flores';t.focus();upd()};
@@ -194,16 +208,69 @@ function refJpeg(max=1280){
   c.getContext('2d').drawImage(src,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.92).split(',')[1];
 }
 const HSIZE={'16:9':[704,384],'4:5':[448,576],'9:16':[384,704],'1:1':[512,512]};
-function hordeCanvas(side){ // sitúa a la modelo a un lado del lienzo para que img2img respete la composición
-  const[W,H]=HSIZE[opt.ratio],c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');
+function sideCanvas(side,sizes=HSIZE,mime='image/webp'){ // sitúa a la modelo a un lado del lienzo para que img2img respete la composición
+  const[W,H]=sizes[opt.ratio],c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');
   const t=document.createElement('canvas');t.width=t.height=1;const tg=t.getContext('2d');tg.drawImage(src,0,0,src.naturalWidth,src.naturalHeight*.15,0,0,1,1);
   const p=tg.getImageData(0,0,1,1).data;g.fillStyle=`rgb(${p[0]},${p[1]},${p[2]})`;g.fillRect(0,0,W,H);
   const s=Math.min(H/src.naturalHeight,W*.55/src.naturalWidth),w=src.naturalWidth*s,h=src.naturalHeight*s;
   g.drawImage(src,side==='left'?W*.04:W-w-W*.04,H-h,w,h);
-  return{W,H,b64:c.toDataURL('image/webp',.9).split(',')[1]};
+  return{W,H,c,b64:c.toDataURL(mime,.9).split(',')[1]};
 }
 
 /* ---------- providers ---------- */
+const HFSIZE={'16:9':[1248,704],'4:5':[896,1120],'9:16':[768,1344],'1:1':[1024,1024]};
+function editPrompt(desc,side){
+  const other=side==='left'?'right':'left';
+  const style=opt.style==='keep'?'Keep the same art style as the original image.':'Make it a photorealistic photograph with natural light.';
+  const extra=$('extra').value.trim();
+  return `Change the woman's outfit to: ${desc.split(';')[0].trim()}. Replace the whole plain background, including the empty ${other} side, with this scene: ${desc.split(';').slice(1).join(';').trim()||desc}. Keep her face, facial features, identity, hairstyle and body proportions exactly the same. Keep her on the ${side} side of the image; the ${other} side should be calm, uncluttered background with empty space for text. ${style} No text, no watermark.${extra?' '+extra:''}`;
+}
+let gradio=null;const hfApps={};
+async function hfApp(space){
+  gradio??=await import('https://cdn.jsdelivr.net/npm/@gradio/client@2.7.0/+esm');
+  const tok=$('hftoken').value.trim()||undefined,k=space+'|'+(tok||'');
+  if(!hfApps[k]){
+    const app=await gradio.Client.connect(space,tok?{hf_token:tok,token:tok}:{});
+    const api=await app.view_api();
+    const eps=Object.entries(api.named_endpoints||{}).filter(([,e])=>e.parameters.some(q=>/image/i.test(q.component))&&e.parameters.some(q=>/textbox/i.test(q.component)));
+    if(!eps.length)throw new Error('Este modelo no expone una función de edición. Prueba el otro modelo.');
+    const[name,ep]=eps.find(([n])=>/infer|edit|generate|run|predict/i.test(n))||eps[0];
+    hfApps[k]={app,name,ep};
+  }
+  return hfApps[k];
+}
+function findUrl(x){if(!x)return null;if(typeof x==='string')return /^(https?:|data:)/.test(x)?x:null;if(x.url)return x.url;if(x.image)return findUrl(x.image);if(Array.isArray(x)){for(const y of x){const u=findUrl(y);if(u)return u}}return null}
+async function hf(desc,side,signal,onMsg){
+  onMsg('Conectando…');
+  const{app,name,ep}=await hfApp($('hfspace').value);
+  if(signal.aborted)throw new DOMException('','AbortError');
+  const{c}=sideCanvas(side,HFSIZE,'image/png');
+  const blob=await new Promise(r=>c.toBlob(r,'image/png'));
+  const args={};let textDone=false;
+  for(const q of ep.parameters){
+    const nm=q.parameter_name;if(!nm)continue;
+    if(/image/i.test(q.component)&&!(nm in args))args[nm]=/gallery/i.test(q.component)?[{image:gradio.handle_file(blob),caption:null}]:gradio.handle_file(blob);
+    else if(/textbox/i.test(q.component)&&!textDone&&(/prompt|instruction|text/i.test(nm)||!q.parameter_has_default)){args[nm]=editPrompt(desc,side);textDone=true}
+    else if(/^randomize/i.test(nm))args[nm]=true;
+    else if(/rewrite/i.test(nm))args[nm]=false;
+  }
+  onMsg('En la fila de Hugging Face…');
+  let res;
+  try{res=await Promise.race([app.predict(name,args),new Promise((_,rej)=>signal.addEventListener('abort',()=>rej(new DOMException('','AbortError')),{once:true}))])}
+  catch(e){
+    if(e.name==='AbortError')throw e;
+    const m=String(e?.message||e?.title||e||'');
+    if(/quota|exceeded|ZeroGPU|GPU duration/i.test(m))throw new Error('Se acabó tu cuota gratis de hoy en Hugging Face'+($('hftoken').value.trim()?'':' (con un token gratis tendrías más)')+'. Vuelve mañana o usa "Copiar prompts".');
+    if(/sleep|paused|build|runtime/i.test(m))throw new Error('El modelo está dormido o reiniciándose. Prueba el otro modelo o espera unos minutos.');
+    throw new Error(m||'Falló la generación en Hugging Face.');
+  }
+  const url=findUrl(res?.data);if(!url)throw new Error('No devolvió imagen. Reintenta.');
+  return url;
+}
+async function saveImg(url,fname,a){
+  try{const b=await(await fetch(url)).blob();const u=URL.createObjectURL(b);const l=document.createElement('a');l.href=u;l.download=fname;document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
+  catch(e){window.open(url,'_blank','noopener')}
+}
 async function gemini(desc,side,signal){
   const key=$('gkey').value.trim();if(!key)throw new Error('Falta la clave de Gemini.');
   const body={contents:[{parts:[{inline_data:{mime_type:'image/jpeg',data:refB64}},{text:gemPrompt(desc,side)}]}],
@@ -221,7 +288,7 @@ async function gemini(desc,side,signal){
   const d=part.inlineData||part.inline_data;return`data:${d.mimeType||d.mime_type||'image/png'};base64,${d.data}`;
 }
 async function horde(desc,side,signal,onMsg){
-  const{W,H,b64}=hordeCanvas(side);const key=$('hkey').value.trim()||'0000000000';
+  const{W,H,b64}=sideCanvas(side);const key=$('hkey').value.trim()||'0000000000';
   const body={prompt:hordePrompt(desc),params:{sampler_name:'k_euler_a',cfg_scale:7,denoising_strength:.62,width:W,height:H,steps:25,n:1,karras:true},
     nsfw:false,censor_nsfw:true,source_image:b64,source_processing:'img2img',r2:true,shared:false,slow_workers:true};
   const r=await fetch(API+'/generate/async',{method:'POST',signal,headers:{'Content-Type':'application/json',apikey:key,'Client-Agent':AGENT},body:JSON.stringify(body)});
@@ -258,11 +325,12 @@ async function job(t,signal){
   ph.textContent='Generando…';ph.className='ph';
   for(let attempt=0;;attempt++){
     try{
-      const url=opt.prov==='gemini'?await gemini(desc,side,signal):await horde(desc,side,signal,m=>ph.textContent=m);
+      const msg=m=>ph.textContent=m;const url=opt.prov==='gemini'?await gemini(desc,side,signal):opt.prov==='hf'?await hf(desc,side,signal,msg):await horde(desc,side,signal,msg);
       const img=new Image();img.src=url;img.alt=title;ph.replaceWith(img);
       const a=el.querySelector('.a');a.hidden=false;
       const fname=`escena-${title.toLowerCase().normalize('NFD').replace(/[^\w]+/g,'-').replace(/^-|-$/g,'')}.png`;
-      a.innerHTML=url.startsWith('data:')?`<a class="ghost" href="${url}" download="${fname}">Descargar</a>`:`<a class="ghost" href="${esc(url)}" target="_blank" rel="noopener">Abrir</a>`;
+      a.innerHTML=url.startsWith('data:')?`<a class="ghost" href="${url}" download="${fname}">Descargar</a>`:`<button class="ghost">Descargar</button>`;
+      if(!url.startsWith('data:'))a.querySelector('button').onclick=e=>saveImg(url,fname,e.target);
       const again=document.createElement('button');again.className='ghost';again.textContent='Otra versión';
       again.onclick=()=>{const n=card(title);startRun([{el:n,title,desc,side}],false)};a.appendChild(again);
       return true;
@@ -284,13 +352,14 @@ async function startRun(tasks,fresh=true){
   const tick=()=>{$('sbar').style.width=(done/total*100)+'%';$('sdet').textContent=`${done} de ${total} listas${ok<done?` · ${done-ok} con error`:''}`};
   say(`Generando ${total} escena${total>1?'s':''}…`);tick();
   const worker=async()=>{while(i<total&&!ctl.signal.aborted){const t=tasks[i++];if(await job(t,ctl.signal))ok++;done++;tick()}};
-  await Promise.all(Array.from({length:Math.min(2,total)},worker));
+  await Promise.all(Array.from({length:Math.min(opt.prov==='hf'?1:2,total)},worker));
   if(run===mine)run=null;
   if(--active===0){$('go').disabled=false;$('cancel').hidden=true}
   if(ctl.signal.aborted){tasks.slice(i).forEach(t=>{const ph=t.el.querySelector('.ph');if(ph)ph.textContent='Detenido'});say('Detenido.')}
   else say(ok===total?`¡Listo! ${ok} escena${ok>1?'s':''}.`:`Terminado: ${ok} de ${total} bien. Usa "Reintentar" en las que fallaron.`,ok===total?'okc':'err');
 }
 $('go').onclick=()=>{
+  if(opt.prov==='copy')return copyMode();
   if(!src)return say('Primero elige la foto de la modelo.','err');
   if(opt.prov==='gemini'&&!$('gkey').value.trim()){$('gkey').focus();return say('Pega tu clave de Gemini en el paso 2.','err')}
   const sel=rows().filter(r=>r.querySelector('input').checked).map(r=>({title:r.querySelector('b').textContent,desc:r.querySelector('textarea').value.trim()})).filter(s=>s.desc);
@@ -299,6 +368,20 @@ $('go').onclick=()=>{
   tasks[0].el.scrollIntoView({behavior:'smooth',block:'nearest'});
   startRun(tasks);
 };
+function copyMode(){
+  const sel=rows().filter(r=>r.querySelector('input').checked).map(r=>({title:r.querySelector('b').textContent,desc:r.querySelector('textarea').value.trim()})).filter(s=>s.desc);
+  if(!sel.length)return say('Marca al menos una escena con descripción.','err');
+  const ar={'16:9':'horizontal 16:9','4:5':'vertical 4:5','9:16':'vertical 9:16','1:1':'cuadrado 1:1'}[opt.ratio];
+  $('empty').style.display='none';
+  sel.forEach((s,i)=>{
+    const txt=gemPrompt(s.desc,sideFor(i))+`\nImage format: ${ar}.`;
+    const d=document.createElement('div');d.className='res';
+    d.innerHTML=`<p class="cap" style="padding:10px 10px 0;color:var(--ink);font-weight:600">${esc(s.title)}</p><textarea readonly style="margin:8px 10px;width:calc(100% - 20px);min-height:140px;font-size:13px">${esc(txt)}</textarea><div class="a"><button class="ghost">Copiar prompt</button></div>`;
+    d.querySelector('button').onclick=async e=>{try{await navigator.clipboard.writeText(txt)}catch(_){const t=d.querySelector('textarea');t.select();document.execCommand('copy')}e.target.textContent='¡Copiado!';setTimeout(()=>e.target.textContent='Copiar prompt',1500)};
+    $('out').appendChild(d);
+  });
+  say(`${sel.length} prompts listos. Abre Gemini o Dreamina, sube tu foto y pega cada prompt.`,'okc');$('sbar').style.width='100%';$('sdet').textContent='';
+}
 $('cancel').onclick=()=>{run?.ctl.abort();run=null};
 $('clear').onclick=()=>{$('out').innerHTML='';$('empty').style.display=''};
 $('cancel').hidden=true;provUI();
