@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#1b1430">
+<title>Estudio de Imágenes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#1b1430;--card:#261d42;--line:#3a2f5c;--ink:#f4efff;--mute:#b6abd6;--acc:#ff8a5b;--acc2:#ffd166;--ok:#7be0b0;--bad:#ff7a8a}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:radial-gradient(120% 60% at 50% 0,#33245e 0,var(--bg) 60%) fixed;color:var(--ink);font:16px/1.5 Inter,system-ui,sans-serif;overflow-x:clip}
+main{max-width:640px;margin:0 auto;padding:20px 16px 80px}
+h1{font:600 30px/1.1 Fraunces,Georgia,serif;margin:6px 0 4px}
+.sub{color:var(--mute);margin:0 0 18px;font-size:15px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;margin-bottom:14px}
+label.t{display:block;font-weight:600;margin:0 0 8px}
+.drop{display:grid;place-items:center;aspect-ratio:4/3;border:2px dashed var(--line);border-radius:16px;cursor:pointer;overflow:hidden;position:relative;background:#1f1838}
+.drop img{width:100%;height:100%;object-fit:contain}
+.drop span{color:var(--mute);text-align:center;padding:20px}
+.drop b{display:block;color:var(--ink);font-size:18px;margin-bottom:4px}
+textarea,input[type=text],input[type=password],select{width:100%;font:16px Inter,sans-serif;color:var(--ink);background:#1f1838;border:1px solid var(--line);border-radius:12px;padding:12px}
+textarea{min-height:90px;resize:vertical}
+:focus-visible{outline:3px solid var(--acc2);outline-offset:2px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.chip{border:1px solid var(--line);background:#2e2450;color:var(--ink);border-radius:999px;padding:9px 14px;font:500 14px Inter;min-height:40px;cursor:pointer}
+.chip.on{background:var(--acc);border-color:var(--acc);color:#2a1206}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+input[type=range]{width:100%;accent-color:var(--acc);height:36px}
+.hint{color:var(--mute);font-size:13px;margin:6px 0 0}
+.seg{display:flex;gap:6px}.seg button{flex:1}
+.btn{width:100%;min-height:56px;border:0;border-radius:16px;background:linear-gradient(135deg,var(--acc),#ff5f8f);color:#fff;font:600 18px Inter;cursor:pointer;box-shadow:0 8px 24px #ff5f8f40}
+.btn:disabled{opacity:.5}
+.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);border-radius:12px;min-height:44px;padding:0 14px;font:500 15px Inter;cursor:pointer}
+details summary{cursor:pointer;font-weight:600;min-height:32px}
+details .f{margin-top:12px}
+#status{display:none}
+.bar{height:10px;background:#1f1838;border-radius:99px;overflow:hidden;margin:10px 0}
+.bar i{display:block;height:100%;width:5%;background:linear-gradient(90deg,var(--acc2),var(--acc));transition:width .6s}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.res{background:#1f1838;border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+.res img{width:100%;display:block}
+.res .a{display:flex;gap:6px;padding:8px}
+.res .a>*{flex:1;font-size:13px;padding:0 6px;display:grid;place-items:center;text-decoration:none}
+.err{color:var(--bad)}.okc{color:var(--ok)}
+.empty{color:var(--mute);text-align:center;padding:20px 0;font-size:15px}
+@media(prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+</head>
+<body>
+<main>
+<h1>Estudio de Imágenes</h1>
+<p class="sub">Sube una foto, describe el cambio y genera. Es gratis y sin límite: funciona con la red de voluntarios AI Horde.</p>
+
+<section class="card">
+  <label class="t">1. Imagen base</label>
+  <div class="drop" id="drop" role="button" tabindex="0"><span><b>Toca para elegir una foto</b>de tu galería o cámara</span></div>
+  <input type="file" id="file" accept="image/*" hidden>
+</section>
+
+<section class="card">
+  <label class="t" for="prompt">2. ¿Qué quieres crear?</label>
+  <textarea id="prompt" placeholder="Ej.: watercolor painting, soft pastel colors, flowers in the background"></textarea>
+  <p class="hint">Consejo: escribe en inglés y salen mejores resultados. También puedes tocar estilos:</p>
+  <div class="chips" id="chips"></div>
+</section>
+
+<section class="card">
+  <div class="row"><label class="t" for="den" style="margin:0">3. Cuánto cambiar</label><b id="denv">Medio</b></div>
+  <input type="range" id="den" min="0.25" max="0.9" step="0.05" value="0.55">
+  <p class="hint">Poco = se parece mucho a la foto original. Mucho = más creativo.</p>
+  <div style="margin-top:14px"><label class="t">Cantidad de imágenes</label>
+  <div class="seg" id="qty"><button class="chip" data-n="1">1</button><button class="chip on" data-n="2">2</button><button class="chip" data-n="3">3</button><button class="chip" data-n="4">4</button></div></div>
+  <details style="margin-top:14px"><summary>Ajustes avanzados</summary>
+    <div class="f"><label class="t" for="model">Modelo</label><select id="model"><option>Cargando modelos…</option></select><p class="hint">Entre más voluntarios tenga un modelo, más rápido sale.</p></div>
+    <div class="f"><label class="t" for="neg">Evitar (negativo)</label><input type="text" id="neg" value="blurry, deformed, ugly, bad anatomy, watermark, text"></div>
+    <div class="f"><label class="t">Tamaño</label><div class="seg" id="size"><button class="chip on" data-s="512">Normal</button><button class="chip" data-s="768">Grande</button></div><p class="hint">Grande tarda más y a veces requiere clave.</p></div>
+    <div class="f"><label class="t" for="seed">Semilla (opcional)</label><input type="text" id="seed" inputmode="numeric" placeholder="Vacío = al azar"><p class="hint">Repite la misma semilla para variar solo un detalle.</p></div>
+    <div class="f"><label class="t" for="key">Clave personal de AI Horde (opcional)</label><input type="password" id="key" placeholder="0000000000"><p class="hint">Gratis en <a href="https://aihorde.net/register" style="color:var(--acc2)">aihorde.net/register</a>. Con clave la cola va más rápido.</p></div>
+  </details>
+</section>
+
+<button class="btn" id="go">Generar imágenes</button>
+
+<section class="card" id="status" style="margin-top:14px">
+  <div class="row"><b id="stxt">Enviando…</b><button class="ghost" id="cancel">Cancelar</button></div>
+  <div class="bar"><i id="sbar"></i></div>
+  <p class="hint" id="sdet"></p>
+</section>
+
+<section class="card" style="margin-top:14px">
+  <div class="row"><label class="t" style="margin:0">Resultados</label><button class="ghost" id="clear">Limpiar</button></div>
+  <p class="hint">Mantén presionada una imagen para guardarla, o toca "Abrir".</p>
+  <div class="grid" id="out" style="margin-top:10px"></div>
+  <p class="empty" id="empty">Aquí aparecerán tus imágenes.</p>
+</section>
+</main>
+
+<script>
+{
+const API='https://aihorde.net/api/v2', AGENT='estudio-imagenes:1.0:anon';
+const STYLES=[['Acuarela','watercolor painting, soft edges'],['Óleo','oil painting, rich brush strokes'],['Anime','anime style, vibrant colors, clean lines'],['Caricatura 3D','3d cartoon render, pixar style lighting'],['Foto real','photorealistic, professional photography, sharp focus'],['Boceto','pencil sketch, hand drawn'],['Vintage','vintage photo, film grain, warm tones'],['Fantasía','fantasy art, magical atmosphere, glowing light'],['Minimalista','minimalist, flat colors, simple shapes'],['Cómic','comic book style, bold ink outlines']];
+const PREF=['Deliberate','Dreamshaper','AlbedoBase XL (SDXL)','Realistic Vision','stable_diffusion'];
+const $=id=>document.getElementById(id);
+let src=null, n=2, size=512, job=null, timer=null;
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+
+$('chips').innerHTML=STYLES.map((s,i)=>`<button class="chip" data-i="${i}">${s[0]}</button>`).join('');
+$('chips').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;b.classList.toggle('on')};
+const seg=(id,fn)=>$(id).onclick=e=>{const b=e.target.closest('.chip');if(!b)return;[...$(id).children].forEach(c=>c.classList.toggle('on',c===b));fn(b)};
+seg('qty',b=>n=+b.dataset.n);seg('size',b=>size=+b.dataset.s);
+const denLbl=v=>v<.4?'Poco':v<.65?'Medio':'Mucho';
+$('den').oninput=()=>$('denv').textContent=denLbl(+$('den').value);
+$('key').value=store.get('hordeKey')||'';
+$('key').onchange=()=>store.set('hordeKey',$('key').value.trim());
+$('prompt').value=store.get('lastPrompt')||'';
+
+$('drop').onclick=()=>$('file').click();
+$('drop').onkeydown=e=>{if(e.key==='Enter'||e.key===' ')$('file').click()};
+$('file').onchange=()=>{const f=$('file').files[0];if(f)loadImg(f)};
+
+function loadImg(f){
+  const r=new FileReader();
+  r.onload=()=>{const im=new Image();im.onload=()=>{src=im;$('drop').innerHTML=`<img src="${r.result}" alt="Imagen base">`};im.src=r.result};
+  r.readAsDataURL(f);
+}
+function useAsBase(url){
+  const im=new Image();im.crossOrigin='anonymous';
+  im.onload=()=>{src=im;$('drop').innerHTML='';$('drop').appendChild(im.cloneNode());window.scrollTo({top:0,behavior:'smooth'})};
+  im.onerror=()=>say('No pude reutilizar esa imagen. Guárdala y súbela de nuevo.',true);
+  im.src=url;
+}
+function encode(){
+  const w0=src.naturalWidth,h0=src.naturalHeight,k=size/Math.max(w0,h0);
+  const r64=x=>Math.max(256,Math.round(x*k/64)*64);
+  const W=r64(w0),H=r64(h0),c=document.createElement('canvas');c.width=W;c.height=H;
+  c.getContext('2d').drawImage(src,0,0,W,H);
+  let d=c.toDataURL('image/webp',.9);if(!d.startsWith('data:image/webp'))d=c.toDataURL('image/jpeg',.92);
+  return{W,H,b64:d.split(',')[1]};
+}
+const key=()=>$('key').value.trim()||'0000000000';
+const hdr=()=>({'Content-Type':'application/json','apikey':key(),'Client-Agent':AGENT});
+
+async function loadModels(){
+  try{
+    const r=await fetch(API+'/status/models?type=image&model_state=known');const list=(await r.json()).filter(m=>m.count>0).sort((a,b)=>b.count-a.count).slice(0,40);
+    const def=PREF.find(p=>list.some(m=>m.name===p))||list[0]?.name;
+    $('model').innerHTML=list.map(m=>`<option value="${m.name}"${m.name===(store.get('model')||def)?' selected':''}>${m.name} · ${m.count} voluntarios</option>`).join('');
+  }catch(e){$('model').innerHTML='<option value="">Automático</option>'}
+}
+$('model').onchange=()=>store.set('model',$('model').value);
+
+function say(t,bad){$('status').style.display='block';$('stxt').textContent=t;$('stxt').className=bad?'err':'';}
+function busy(on){$('go').disabled=on;$('go').textContent=on?'Generando…':'Generar imágenes';$('cancel').style.display=on?'':'none'}
+
+$('go').onclick=async()=>{
+  if(!src)return say('Primero elige una imagen base.',true);
+  const extra=[...$('chips').querySelectorAll('.on')].map(b=>STYLES[b.dataset.i][1]);
+  const p=[$('prompt').value.trim(),...extra].filter(Boolean).join(', ');
+  if(!p)return say('Escribe qué quieres o elige un estilo.',true);
+  store.set('lastPrompt',$('prompt').value);
+  let enc;try{enc=encode()}catch(e){return say('No pude usar esa imagen como base. Guárdala en el teléfono y súbela con "Toca para elegir".',true)}
+  const {W,H,b64}=enc,neg=$('neg').value.trim(),m=$('model').value;
+  const body={prompt:neg?`${p} ### ${neg}`:p,params:{sampler_name:'k_euler_a',cfg_scale:7,denoising_strength:+$('den').value,width:W,height:H,steps:25,n,karras:true},
+    nsfw:false,censor_nsfw:true,source_image:b64,source_processing:'img2img',r2:true,shared:false,trusted_workers:false,slow_workers:true};
+  if(m)body.models=[m];
+  if($('seed').value.trim())body.params.seed=$('seed').value.trim();
+  busy(true);say('Enviando a la red…');$('sbar').style.width='5%';$('sdet').textContent='';
+  try{
+    const r=await fetch(API+'/generate/async',{method:'POST',headers:hdr(),body:JSON.stringify(body)});
+    const j=await r.json();
+    if(!r.ok||!j.id)throw new Error(j.message||('Error '+r.status));
+    job=j.id;poll(Date.now());
+  }catch(e){busy(false);say(fix(e.message),true)}
+};
+function fix(msg){
+  if(/kudos/i.test(msg))return 'Esta petición pide una clave gratis. Usa tamaño Normal o crea tu clave en aihorde.net/register. ('+msg+')';
+  if(/fetch|network/i.test(msg))return 'Sin conexión con AI Horde. Revisa tu internet e inténtalo otra vez.';
+  return msg;
+}
+async function poll(t0){
+  try{
+    const c=await (await fetch(`${API}/generate/check/${job}`,{headers:{'Client-Agent':AGENT}})).json();
+    if(c.faulted)throw new Error('La generación falló. Prueba otro modelo.');
+    if(c.is_possible===false)throw new Error('Ningún voluntario puede hacer esto ahora. Prueba otro modelo o tamaño Normal.');
+    if(c.done)return finish();
+    const wait=c.wait_time||0,el=(Date.now()-t0)/1000;
+    $('sbar').style.width=Math.min(95,5+el/(el+wait+1)*90)+'%';
+    say(c.processing?'Pintando tus imágenes…':'En la fila de espera…');
+    $('sdet').textContent=(c.queue_position?`Puesto en la fila: ${c.queue_position}. `:'')+(wait?`Faltan unos ${Math.ceil(wait)} s.`:'')+` Listas: ${c.finished||0} de ${n}.`;
+    timer=setTimeout(()=>poll(t0),4000);
+  }catch(e){busy(false);say(e.message,true);job=null}
+}
+async function finish(){
+  try{
+    const s=await (await fetch(`${API}/generate/status/${job}`,{headers:{'Client-Agent':AGENT}})).json();
+    const g=(s.generations||[]).filter(x=>!x.censored);
+    $('sbar').style.width='100%';
+    say(g.length?`¡Listo! ${g.length} imagen${g.length>1?'es':''}.`:'Las imágenes fueron bloqueadas por el filtro. Cambia la descripción.',!g.length);
+    $('stxt').className=g.length?'okc':'err';
+    g.forEach(x=>add(x.img,x.seed,x.model));
+  }catch(e){say('No pude traer los resultados: '+e.message,true)}
+  job=null;busy(false);
+}
+function add(url,seed,model){
+  $('empty').style.display='none';
+  const d=document.createElement('div');d.className='res';
+  d.innerHTML=`<img src="${url}" alt="Resultado" loading="lazy"><div class="a"><a class="ghost" href="${url}" target="_blank" rel="noopener">Abrir</a><button class="ghost" data-u="${url}">Usar de base</button></div><p class="hint" style="padding:0 8px 8px;margin:0">Semilla ${seed} · ${model}</p>`;
+  d.querySelector('button').onclick=()=>useAsBase(url);
+  d.querySelector('.hint').onclick=()=>{$('seed').value=seed};
+  $('out').prepend(d);
+}
+$('cancel').onclick=async()=>{
+  clearTimeout(timer);
+  if(job){try{const s=await (await fetch(`${API}/generate/status/${job}`,{method:'DELETE',headers:{'Client-Agent':AGENT}})).json();(s.generations||[]).forEach(x=>add(x.img,x.seed,x.model))}catch(e){}}
+  job=null;busy(false);say('Cancelado.');
+};
+$('clear').onclick=()=>{$('out').innerHTML='';$('empty').style.display=''};
+busy(false);$('cancel').style.display='none';loadModels();
+}
+</script>
+</body>
+</html>
