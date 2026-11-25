@@ -1,0 +1,50 @@
+[
+ {
+  "file": "intro.wav",
+  "start": 0.3
+ },
+ {
+  "file": "1a.wav",
+  "start": 5.3
+ },
+ {
+  "file": "1b.wav",
+  "start": 9.25
+ },
+ {
+  "file": "2a.wav",
+  "start": 19.3
+ },
+ {
+  "file": "2b.wav",
+  "start": 23.25
+ },
+ {
+  "file": "3a.wav",
+  "start": 33.3
+ },
+ {
+  "file": "3b.wav",
+  "start": 37.25
+ },
+ {
+  "file": "4a.wav",
+  "start": 47.3
+ },
+ {
+  "file": "4b.wav",
+  "start": 51.25
+ },
+ {
+  "file": "5a.wav",
+  "start": 61.3
+ },
+ {
+  "file": "5b.wav",
+  "start": 65.25
+ },
+ {
+  "file": "outro.wav",
+  "start": 75.3
+ }
+]

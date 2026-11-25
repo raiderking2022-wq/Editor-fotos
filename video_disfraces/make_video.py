@@ -491,9 +491,26 @@ def synth_audio(path):
         add(D1, s0 + REVEAL)
     add(D1, DUR - OUTRO)
 
-    # ducking ligero + fade final
-    out *= np.minimum(1, (DUR - tt) / 1.5)
+    # narración (voz/plan.json, generada por make_voice.py) con ducking de la música
     out = np.tanh(out * 1.2) * 0.8
+    plan_p = os.path.join(HERE, "voz", "plan.json")
+    if os.path.exists(plan_p):
+        import json
+        voice = np.zeros(n)
+        for c in json.load(open(plan_p)):
+            with wave.open(os.path.join(HERE, "voz", c["file"])) as w:
+                v = np.frombuffer(w.readframes(w.getnframes()), np.int16) / 32768.0
+            v = v / (np.abs(v).max() + 1e-9) * 0.95
+            s0 = int(c["start"] * SR)
+            e = min(n, s0 + len(v))
+            voice[s0:e] += v[: e - s0]
+        env = (np.abs(voice) > 0.01).astype(float)
+        k = int(0.25 * SR)
+        env = np.convolve(env, np.ones(k) / k, mode="same")
+        env = np.clip(env * 4, 0, 1)
+        out = out * (1 - 0.65 * env) + voice * 0.9
+    out *= np.minimum(1, (DUR - tt) / 1.5)
+    out = np.clip(out, -1, 1)
     pcm = (out * 32767).astype(np.int16)
     st = np.repeat(pcm[:, None], 2, axis=1)
     with wave.open(path, "wb") as w:
@@ -530,5 +547,17 @@ if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "preview":
         for t in [float(x) for x in sys.argv[2:]]:
             frame_at(t).convert("RGB").save(os.path.join(HERE, f"prev_{t:.1f}.png"))
+    elif len(sys.argv) > 1 and sys.argv[1] == "audio":
+        # rehace solo el audio y lo une al video ya renderizado
+        wav = os.path.join(HERE, "audio.wav")
+        synth_audio(wav)
+        src = os.path.join(HERE, "quien_esta_detras.mp4")
+        tmp = os.path.join(HERE, "tmp_mux.mp4")
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", src, "-i", wav, "-map", "0:v", "-map", "1:a",
+                        "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", tmp],
+                       check=True)
+        os.replace(tmp, src)
+        os.remove(wav)
+        print("Audio actualizado:", src)
     else:
         main()
