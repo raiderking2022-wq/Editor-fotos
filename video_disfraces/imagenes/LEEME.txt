@@ -1,0 +1,15 @@
+Coloca aquí 10 fotos (jpg, png o webp) con estos nombres exactos:
+
+1_personaje  -> El Fauno (El laberinto del fauno)
+1_actor      -> Doug Jones sin maquillaje
+2_personaje  -> Pennywise (It)
+2_actor      -> Bill Skarsgård
+3_personaje  -> Gollum (El Señor de los Anillos)
+3_actor      -> Andy Serkis
+4_personaje  -> Chewbacca (Star Wars)
+4_actor      -> Peter Mayhew
+5_personaje  -> Hellboy
+5_actor      -> Ron Perlman
+
+Ejemplo: 1_personaje.jpg, 1_actor.png ...
+Luego ejecuta:  python3 make_video.py
