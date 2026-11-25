@@ -44,7 +44,7 @@ ITEMS = [
     ("CHEWBACCA", "Star Wars", "PETER MAYHEW",
      "Con 2,21 metros de estatura, interpretó al wookiee durante décadas dentro de "
      "un pesado traje peludo y máscara de látex con visibilidad reducida.", (170, 110, 60)),
-    ("HELLBOY", "Hellboy (2004)", "RON PERLMAN",
+    ("HELLBOY", "Hellboy (2004 y 2008)", "RON PERLMAN",
      "Soportó entre tres y cuatro horas diarias de maquillaje y prótesis para lucir "
      "la piel roja, cuernos limados, colmillos y el brazo derecho gigante.", (220, 50, 30)),
 ]
@@ -154,7 +154,7 @@ def photo_card(path, w, h, color, label=None):
     sc = max(w / src.width, h / src.height)
     src = src.resize((int(src.width * sc) + 1, int(src.height * sc) + 1), Image.LANCZOS)
     left = (src.width - w) // 2
-    top = int((src.height - h) * 0.25)  # prioriza la parte superior (rostros)
+    top = int((src.height - h) * 0.08)  # prioriza la parte superior (rostros)
     src = src.crop((left, top, left + w, top + h)).convert("RGBA")
     m = Image.new("L", (w, h), 0)
     ImageDraw.Draw(m).rounded_rectangle([0, 0, w - 1, h - 1], 40, fill=255)
@@ -387,6 +387,8 @@ def render_outro(t):
         f = font(FB, int(70 * pulse))
         d.rounded_rectangle([170, 1610, W - 170, 1760], 70, fill=(200, 30, 60))
         text_c(d, 1685 - f.size / 2 - 8, "SÍGUEME PARA MÁS", f, (255, 255, 255), 2)
+    text_c(d, 1830, "Fotos: Wikimedia Commons (Gage Skidmore y otros, CC BY-SA) y Wikipedia",
+           font(FR, 24), (170, 170, 180))
     if t > OUTRO - 0.5:
         a = int(255 * (t - (OUTRO - 0.5)) / 0.5)
         img = Image.alpha_composite(img, Image.new("RGBA", (W, H), (0, 0, 0, a)))
